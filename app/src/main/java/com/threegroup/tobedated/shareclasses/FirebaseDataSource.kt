@@ -1,6 +1,7 @@
 package com.threegroup.tobedated.shareclasses
 
 import android.util.Log
+import android.widget.Toast
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.PhoneAuthCredential
 import com.google.firebase.database.DataSnapshot
@@ -9,6 +10,8 @@ import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import com.threegroup.tobedated.shareclasses.models.MessageModel
 import com.threegroup.tobedated.shareclasses.models.UserModel
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -102,7 +105,7 @@ class FirebaseDataSource() {
      * Function to get chats from database
      * takes the chat id
      */
-    suspend fun getChatData(chatId: String?) {
+    fun getChatData(chatId: String?): Flow<List<MessageModel>> = callbackFlow {
         FirebaseDatabase.getInstance().getReference("chats")
             .child(chatId!!).addValueEventListener(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
@@ -128,9 +131,11 @@ class FirebaseDataSource() {
      * Function to store messages between users
      * takes the message as a parameter
      */
-    suspend fun storeChatData(message: String) {
-        var senderId: String? = null
-        var chatId: String? = null
+
+    suspend fun storeChatData(chatId: String?, message: String) {
+        val senderId = FirebaseDatabase.getInstance().getReference("users")
+            .child(FirebaseAuth.getInstance().currentUser!!.phoneNumber!!).toString()
+
         val currentTime: String = SimpleDateFormat("HH:mm a", Locale.getDefault()).format(Date())
         val currentDate: String = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()).format(Date())
 

@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -30,9 +32,15 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBarColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -46,6 +54,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
+import com.threegroup.tobedated.MessageViewModel
 import com.threegroup.tobedated.R
 import com.threegroup.tobedated.shareclasses.composables.baseAppTextTheme
 import com.threegroup.tobedated.shareclasses.theme.AppTheme
@@ -53,13 +62,13 @@ import com.threegroup.tobedated.shareclasses.theme.AppTheme
 
 @Composable
 fun MessageStart(
-    noMatches:Boolean = true,
-    userPhoto:String,
-    userName:String,
-    userLastMessage:String,
+    noMatches: Boolean = true,
+    userPhoto: String,
+    userName: String,
+    userLastMessage: String,
     openChat: () -> Unit,
-    notification:Boolean = false,
-    ) {
+    notification: Boolean = false,
+) {
     val maxLength = 35
     val cleanedMessage = userLastMessage.replace("\n", " ")
     val displayedMessage = if (cleanedMessage.length > maxLength) {
@@ -72,7 +81,7 @@ fun MessageStart(
             .fillMaxSize()
             .padding(15.dp, 0.dp)
     ) {
-        if(noMatches){
+        if (noMatches) {
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
@@ -84,9 +93,9 @@ fun MessageStart(
                     textAlign = TextAlign.Center,
                 )
             }
-        }else{
+        } else {
             Spacer(modifier = Modifier.height(16.dp))
-            Row(Modifier.clickable(onClick = openChat)){
+            Row(Modifier.clickable(onClick = openChat)) {
                 AsyncImage(
                     modifier = Modifier
                         .size(58.dp)
@@ -99,20 +108,35 @@ fun MessageStart(
                     modifier = Modifier.padding(15.dp, 6.dp),
                     horizontalAlignment = Alignment.Start
                 ) {
-                    Row{
-                        Text(text = userName, style = AppTheme.typography.titleSmall, color = AppTheme.colorScheme.onBackground)
-                        if(notification){
-                            Icon(imageVector = ImageVector.vectorResource(R.drawable.notification), contentDescription = "New Message",
-                                modifier = Modifier.offset(y= (-4).dp), tint = AppTheme.colorScheme.primary)
+                    Row {
+                        Text(
+                            text = userName,
+                            style = AppTheme.typography.titleSmall,
+                            color = AppTheme.colorScheme.onBackground
+                        )
+                        if (notification) {
+                            Icon(
+                                imageVector = ImageVector.vectorResource(R.drawable.notification),
+                                contentDescription = "New Message",
+                                modifier = Modifier.offset(y = (-4).dp),
+                                tint = AppTheme.colorScheme.primary
+                            )
                         }
                     }
                     Spacer(modifier = Modifier.height(14.dp))
-                    Text(text = displayedMessage,
-                        style = AppTheme.typography.labelSmall, color = AppTheme.colorScheme.onBackground)
+                    Text(
+                        text = displayedMessage,
+                        style = AppTheme.typography.labelSmall,
+                        color = AppTheme.colorScheme.onBackground
+                    )
                 }
             }
             Spacer(modifier = Modifier.height(16.dp))
-            HorizontalDivider(modifier = Modifier.height(20.dp),color = Color(0xDDB39DB7), thickness = 1.dp)
+            HorizontalDivider(
+                modifier = Modifier.height(20.dp),
+                color = Color(0xDDB39DB7),
+                thickness = 1.dp
+            )
         }
 
     }
@@ -122,16 +146,16 @@ fun MessageStart(
 @Composable
 fun InsideMessages(
     messages: @Composable () -> Unit,
-    titleText:String,
-    value:String = "",
+    titleText: String,
+    value: String = "",
     onValueChange: (String) -> Unit = {},
     sendMessage: () -> Unit = {},
     goToProfile: () -> Unit = {},
     nav: NavHostController,
     startVideoCall: () -> Unit = {},
-    startCall:() -> Unit = {},
-    chatSettings:() -> Unit,
-    sendAttachment:() -> Unit = {},
+    startCall: () -> Unit = {},
+    chatSettings: () -> Unit,
+    sendAttachment: () -> Unit = {},
     hideCall: Boolean = true,
 ) {
     Surface(
@@ -151,55 +175,75 @@ fun InsideMessages(
                         actionIconContentColor = AppTheme.colorScheme.primary,
                         scrolledContainerColor = AppTheme.colorScheme.background
                     ),
-                    title = { Button(onClick = goToProfile,
-                        colors = ButtonColors(
-                            contentColor = AppTheme.colorScheme.onBackground,
-                            containerColor = Color.Transparent,
-                            disabledContainerColor = Color.Transparent,
-                            disabledContentColor = Color.Transparent
-                        ),
-                    ) { Text(text = titleText, style = AppTheme.typography.titleMedium) }
+                    title = {
+                        Button(
+                            onClick = goToProfile,
+                            colors = ButtonColors(
+                                contentColor = AppTheme.colorScheme.onBackground,
+                                containerColor = Color.Transparent,
+                                disabledContainerColor = Color.Transparent,
+                                disabledContentColor = Color.Transparent
+                            ),
+                        ) { Text(text = titleText, style = AppTheme.typography.titleMedium) }
                     },//TitleTextGen(title= titleText)},
                     navigationIcon = {
                         IconButton(onClick = { nav.popBackStack() }) { //Showing in stuff like messages, editing profile and stuff
-                            Icon(imageVector = ImageVector.vectorResource(id = R.drawable.arrow_back), contentDescription = "Go back")
+                            Icon(
+                                imageVector = ImageVector.vectorResource(id = R.drawable.arrow_back),
+                                contentDescription = "Go back"
+                            )
                         }
                     },
                     actions = {
-                        if(hideCall){
+                        if (hideCall) {
                             IconButton(onClick = startVideoCall) {
-                                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.videocall), contentDescription = "Settings")
+                                Icon(
+                                    imageVector = ImageVector.vectorResource(id = R.drawable.videocall),
+                                    contentDescription = "Settings"
+                                )
                             }
                             IconButton(onClick = startCall) {
-                                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.call), contentDescription = "Settings")
+                                Icon(
+                                    imageVector = ImageVector.vectorResource(id = R.drawable.call),
+                                    contentDescription = "Settings"
+                                )
                             }
                         }
                         IconButton(onClick = chatSettings) {
-                            Icon(imageVector = ImageVector.vectorResource(id = R.drawable.settings), contentDescription = "Settings")
+                            Icon(
+                                imageVector = ImageVector.vectorResource(id = R.drawable.settings),
+                                contentDescription = "Settings"
+                            )
                         }
                     }
                 )
             },
             bottomBar = {
-                if(hideCall){
-                    Box(modifier = Modifier
-                        .background(AppTheme.colorScheme.onTertiary)
-                        .fillMaxWidth()
-                        .padding(12.dp)){
-                        Row (
+                if (hideCall) {
+                    Box(
+                        modifier = Modifier
+                            .background(AppTheme.colorScheme.onTertiary)
+                            .fillMaxWidth()
+                            .padding(12.dp)
+                    ) {
+                        Row(
                             modifier = Modifier.fillMaxWidth(),
                             //horizontalArrangement = Arrangement.SpaceEvenly
-                        ){
-                            IconButton(onClick = sendAttachment,
+                        ) {
+                            IconButton(
+                                onClick = sendAttachment,
                                 modifier = Modifier
                                     .offset(y = 5.dp)
                                     .weight(1.0F),
-                                colors= IconButtonDefaults.iconButtonColors(
+                                colors = IconButtonDefaults.iconButtonColors(
                                     containerColor = Color.Transparent,
                                     contentColor = AppTheme.colorScheme.secondary,
                                 ),
                             ) {
-                                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.attachment), contentDescription = "Send")
+                                Icon(
+                                    imageVector = ImageVector.vectorResource(id = R.drawable.attachment),
+                                    contentDescription = "Send"
+                                )
                             }
                             OutlinedTextField(
                                 modifier = Modifier
@@ -215,23 +259,26 @@ fun InsideMessages(
                                 maxLines = 4,
 
                                 )
-                            IconButton(onClick = sendMessage,
+                            IconButton(
+                                onClick = sendMessage,
                                 modifier = Modifier
                                     .offset(y = 5.dp)
                                     .weight(1.0F),
-                                colors= IconButtonDefaults.iconButtonColors(
+                                colors = IconButtonDefaults.iconButtonColors(
                                     containerColor = Color.Transparent,
                                     contentColor = AppTheme.colorScheme.secondary,
                                 ),
                             ) {
-                                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.send), contentDescription = "Send")
+                                Icon(
+                                    imageVector = ImageVector.vectorResource(id = R.drawable.send),
+                                    contentDescription = "Send"
+                                )
                             }
                         }
                     }
                 }
             },
-        ) {
-                paddingValues ->
+        ) { paddingValues ->
             val state = rememberScrollState()
             LaunchedEffect(Unit) { state.animateScrollTo(state.maxValue) }
             Column(
@@ -239,18 +286,23 @@ fun InsideMessages(
                     .padding(paddingValues)
                     .verticalScroll(state)
                     .fillMaxSize()
-            ){
+            ) {
                 Spacer(modifier = Modifier.height(24.dp))
                 messages()
             }
         }
     }
 }
+// TODO may want message to have one screen and from there we can display both users' messages
+// TODO find way to putExtra for both chat_id and userId in form of
+//  intent.putExtra("chat_id", chatKey[position])
+//  intent.putExtra("userId", list[position])
+
 @Composable
 fun UserMessage(
-    myMessage:String,
+    myMessage: String,
     color: Color = AppTheme.colorScheme.surface
-){
+) {
     Column {
         Row(
             modifier = Modifier
@@ -264,19 +316,24 @@ fun UserMessage(
                 shape = RoundedCornerShape(10.dp)
             ) {
                 Box(modifier = Modifier.padding(15.dp)) {
-                    Text(text = myMessage, style = AppTheme.typography.body, color= AppTheme.colorScheme.onSurface)
+                    Text(
+                        text = myMessage,
+                        style = AppTheme.typography.body,
+                        color = AppTheme.colorScheme.onSurface
+                    )
                 }
             }
         }
         Spacer(modifier = Modifier.height(6.dp))
     }
 }
+
 @Composable
 fun TheirMessage(
-    replyMessage:String,
-    userPhoto:String,
+    replyMessage: String,
+    userPhoto: String,
     photoClick: () -> Unit
-){
+) {
     Column {
         val bubbleColor = Color.LightGray
         Row(
@@ -286,7 +343,9 @@ fun TheirMessage(
             horizontalArrangement = Arrangement.Start,
             verticalAlignment = Alignment.Bottom
         ) {
-            IconButton(onClick = photoClick) {
+            IconButton(
+                onClick = photoClick
+            ) {
                 AsyncImage(
                     modifier = Modifier
                         .size(44.dp)
@@ -302,8 +361,8 @@ fun TheirMessage(
                 color = bubbleColor,
                 shape = RoundedCornerShape(10.dp)
             ) {
-                Box(modifier = Modifier.padding(15.dp) ){
-                    Text(text= replyMessage, style = AppTheme.typography.body)
+                Box(modifier = Modifier.padding(15.dp)) {
+                    Text(text = replyMessage, style = AppTheme.typography.body)
                 }
             }
         }
@@ -311,3 +370,59 @@ fun TheirMessage(
     }
 }
 
+// TODO make this template work with the app
+// My attempt to get messages working--These are just basic composable functions
+// We'll need to
+@Composable
+fun MessageUserList(
+    userList: List<String>,
+    chatKeys: List<String>,
+    onItemClick: (userName: String, chatId: String) -> Unit
+) {
+    LazyColumn {
+        items(userList) { userName ->
+            val index = userList.indexOf(userName)
+            val chatId = chatKeys[index]
+            UserItem(userName, chatId, onItemClick)
+        }
+    }
+}
+
+@Composable
+fun UserItem(userName: String, chatId: String, onItemClick: (userId: String, chatId: String) -> Unit) {
+    // Implement UI for a single user item here
+    // TODO Rework this as it is only a skeleton
+    Text(
+        text = "User Name: $userName",
+        modifier = Modifier.clickable { onItemClick(userName, chatId) }
+    )
+}
+
+@Composable
+fun MessageScreen(
+    chatId: String,
+    viewModel: MessageViewModel
+) {
+    val messageList by viewModel.chatDataList.collectAsState()
+    // UI for message screen
+    // TODO Rework this as it is only a skeleton
+    Column {
+        // Display message list
+        LazyColumn {
+            items(messageList) { message ->
+                Text(text = "${message!!.senderId}: ${message.message}")
+            }
+        }
+
+        // Message input field
+        var messageText by remember { mutableStateOf("") }
+        TextField(
+            value = messageText,
+            onValueChange = { messageText = it },
+            label = { Text("Enter your message") }
+        )
+        Button(onClick = { viewModel.storeChatData(chatId, messageText) }) {
+            Text("Send")
+        }
+    }
+}
