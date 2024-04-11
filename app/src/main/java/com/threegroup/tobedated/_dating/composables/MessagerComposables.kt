@@ -57,6 +57,8 @@ import coil.compose.AsyncImage
 import com.threegroup.tobedated.MessageViewModel
 import com.threegroup.tobedated.R
 import com.threegroup.tobedated.shareclasses.composables.baseAppTextTheme
+import com.threegroup.tobedated.shareclasses.models.Match
+import com.threegroup.tobedated.shareclasses.models.MessageModel
 import com.threegroup.tobedated.shareclasses.theme.AppTheme
 
 
@@ -372,7 +374,6 @@ fun TheirMessage(
 
 // TODO make this template work with the app
 // My attempt to get messages working--These are just basic composable functions
-// We'll need to
 @Composable
 fun MessageUserList(
     userList: List<String>,
@@ -401,16 +402,17 @@ fun UserItem(userName: String, chatId: String, onItemClick: (userId: String, cha
 @Composable
 fun MessageScreen(
     chatId: String,
-    viewModel: MessageViewModel
+    viewModel: MessageViewModel,
+    match: Match,
+    currentUserSenderId: String
 ) {
     val messageList by viewModel.chatDataList.collectAsState()
-    // UI for message screen
-    // TODO Rework this as it is only a skeleton
+
     Column {
-        // Display message list
         LazyColumn {
             items(messageList) { message ->
-                Text(text = "${message!!.senderId}: ${message.message}")
+                val isCurrentUser = message?.senderId == currentUserSenderId
+                MessageItem(match = match ,message = message!!, isCurrentUser = isCurrentUser)
             }
         }
 
@@ -426,3 +428,47 @@ fun MessageScreen(
         }
     }
 }
+ @Composable
+ fun MessageItem(match: Match, message: MessageModel, isCurrentUser: Boolean) {
+     val backgroundColor = if (isCurrentUser)  Color.Blue else Color.White // set colors for example: Blue else White
+     val textColor = if (isCurrentUser) Color.White else Color.Black
+
+     Row(
+         modifier = Modifier
+             .fillMaxWidth()
+             .padding(horizontal = 8.dp, vertical = 4.dp),
+         horizontalArrangement = if (isCurrentUser) Arrangement.End else Arrangement.Start
+     ) {
+         if (!isCurrentUser) {
+             AsyncImage(
+                 model = match.userPicture, // need to
+                 contentScale = ContentScale.Crop,
+                 contentDescription = null,
+                 modifier = Modifier
+                     .padding(end = 8.dp)
+                     .size(40.dp)
+                     .clip(CircleShape)
+             )
+         }
+
+         message.message?.let {
+             Text(
+                 modifier = Modifier
+                     .background(backgroundColor, RoundedCornerShape(4.dp))
+                     .padding(6.dp)
+                     .weight(4f, false),
+                 text = it,
+                 color = textColor,
+             )
+         }
+
+         if (isCurrentUser) {
+             Spacer(
+                 Modifier
+                     .height(4.dp)
+                     .weight(1f, false)
+                     .background(Color.Red)
+             )
+         }
+     }
+ }
