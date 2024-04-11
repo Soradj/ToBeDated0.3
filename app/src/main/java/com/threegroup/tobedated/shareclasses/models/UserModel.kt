@@ -12,7 +12,7 @@ data class UserModel(
     var seeking         : String = "",
     var sex             : String = "",
     var testResultsMbti : String = "Not Taken",
-    var testResultTbd   : Int = 10,
+    var testResultTbd   : Int = 0,
     var children        : String = "",
     var family          : String = "",
     var education       : String = "",
@@ -39,7 +39,9 @@ data class UserModel(
     var status          : String = "",
     var number          :String = "",
     var verified        :Boolean = false,
-    var userPref        : UserSearchPreferenceModel = UserSearchPreferenceModel()
+    var userPref        : UserSearchPreferenceModel = UserSearchPreferenceModel(),
+    //val liked: List<String>,
+    //val passed: List<String>,
 )
 data class UserSearchPreferenceModel(
     var ageRange            : AgeRange = AgeRange(18, 35),
