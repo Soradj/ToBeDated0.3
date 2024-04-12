@@ -142,7 +142,7 @@ class DatingViewModel(private var repository: Repository) : ViewModel() {
                             // Otherwise, use the provided location value
                             location
                         }
-                        signedInUser.status = userDataMap["status"] as? String ?: ""
+                        signedInUser.status = System.currentTimeMillis()
                         signedInUser.number = userDataMap["number"] as? String ?: ""
                         signedInUser.verified = userDataMap["verified"] as? Boolean ?: false
                         signedInUser.userPref = (userDataMap["userPref"] as? Map<*, *>)?.let { map ->
@@ -180,5 +180,10 @@ class DatingViewModel(private var repository: Repository) : ViewModel() {
                 println("Error: ${error.message}")
             }
         })
+    }
+    fun updateStatus() {
+        val userPhoneNumber = signedInUser.number
+        val databaseReference = FirebaseDatabase.getInstance().getReference("users").child(userPhoneNumber)
+        databaseReference.setValue(signedInUser)
     }
 }
