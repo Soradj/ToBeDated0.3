@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 
 class DatingViewModel(private var repository: Repository) : ViewModel() {
-    val list = ArrayList<UserModel>()
+    // val list = ArrayList<UserModel>()
     private var signedInUser: UserModel = UserModel() //= repository.getUser()
     private var selectedUser: UserModel = UserModel() //The chat you open
 
@@ -110,8 +110,8 @@ class DatingViewModel(private var repository: Repository) : ViewModel() {
     }
 
     //Stuff for setting and getting matches
-    fun getMatches(): ArrayList<UserModel> {
-        return list
+    fun getMatches(): List<UserModel> {
+        return potentialUserData.value.first
     }
 
 
