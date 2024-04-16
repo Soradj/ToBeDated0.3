@@ -12,6 +12,7 @@ import com.google.firebase.database.ValueEventListener
 import com.threegroup.tobedated.RealtimeDBMatch
 import com.threegroup.tobedated.RealtimeDBMatchProperties
 import com.threegroup.tobedated.shareclasses.models.AgeRange
+import com.threegroup.tobedated.shareclasses.models.Match
 import com.threegroup.tobedated.shareclasses.models.MessageModel
 import com.threegroup.tobedated.shareclasses.models.UserModel
 import com.threegroup.tobedated.shareclasses.models.UserSearchPreferenceModel
@@ -20,7 +21,12 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Calendar
 import java.util.Date
+import java.util.GregorianCalendar
 import java.util.Locale
 
 class FirebaseDataSource() {
@@ -58,6 +64,11 @@ class FirebaseDataSource() {
     /*
           User data related functions
      */
+    fun getCurrentUserId(): String {
+        return FirebaseAuth.getInstance().currentUser?.phoneNumber
+            ?: throw Exception("User not logged in")
+    }
+
     fun getCurrentUserSenderId(): String {
         return FirebaseAuth.getInstance().currentUser?.phoneNumber
             ?: throw Exception("User not logged in")
@@ -65,6 +76,27 @@ class FirebaseDataSource() {
 
     private fun getCurrentFirebaseUser(): FirebaseUser? {
         return FirebaseAuth.getInstance().currentUser
+    }
+
+    /**
+     * Function to get a single user's data
+     */
+    suspend fun getUser(userId: String): UserModel {
+        val database = FirebaseDatabase.getInstance()
+        val ref = database.getReference("users").child(userId)
+
+        return try {
+            val dataSnapshot = ref.get().await()
+
+            if (dataSnapshot.exists()) {
+                dataSnapshot.getValue(UserModel::class.java)
+                    ?: throw Exception("Failed to parse UserModel")
+            } else {
+                throw Exception("User doesn't exist")
+            }
+        } catch (e: Exception) {
+            throw Exception(e.message ?: "Error fetching user from Realtime Database")
+        }
     }
 
     /**
@@ -116,7 +148,7 @@ class FirebaseDataSource() {
     /*
         Likes and match related functions
      */
-    suspend fun likeUser(userId: String, likedUserId: String, isLike: Boolean): RealtimeDBMatch? {
+    suspend fun likeOrPass(userId: String, likedUserId: String, isLike: Boolean): RealtimeDBMatch? {
         val database = FirebaseDatabase.getInstance()
 
         // Update user's liked or passed list
@@ -144,16 +176,92 @@ class FirebaseDataSource() {
         return null
     }
 
-    private suspend fun hasUserLikedBack(userId: String, likedUserId: String): Boolean {
+    suspend fun hasUserLikedBack(userId: String, likedUserId: String): Boolean {
         val likedRef =
             FirebaseDatabase.getInstance().getReference("users/$likedUserId/liked/$userId")
         val likedSnapshot = likedRef.get().await()
         return likedSnapshot.exists()
     }
 
-    private fun getMatchId(userId1: String, userId2: String): String {
-        // Here you can define your logic to generate a match ID
-        // For simplicity, let's concatenate user IDs
+
+    suspend fun getMatchesFlow(userId: String): Flow<List<RealtimeDBMatch>> = callbackFlow {
+        val db = FirebaseDatabase.getInstance()
+        val ref = db.getReference("matches")
+        val listener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val matches = mutableListOf<RealtimeDBMatch>()
+                for (data in snapshot.children) {
+                    try {
+                        val match = data.getValue(RealtimeDBMatch::class.java)
+                        match?.let {
+                            matches.add(it)
+                        }
+                        Log.d("MATCH_TAG", "Succeeded parsing RealtimeDBMatch")
+                    } catch (e: Exception) {
+                        Log.d("MATCH_TAG", "Error parsing RealtimeDBMatch", e)
+                    }
+                }
+                trySend(matches).isSuccess // this should emit the list of matches to the flow
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.d("MATCH_TAG", "Database error: ${error.message}")
+            }
+        }
+        ref.orderByChild(RealtimeDBMatchProperties.usersMatched)
+            .equalTo(userId)
+            .addListenerForSingleValueEvent(listener)
+        awaitClose {
+            ref.removeEventListener(listener)
+        }
+    }
+
+    /**
+     * Function needed to convert birthday from String to Date
+     */
+    fun stringToDate(dateString: String, format: String): Date {
+        val formatter = DateTimeFormatter.ofPattern(format)
+        val localDate = LocalDate.parse(dateString, formatter)
+        return Date.from(localDate.atStartOfDay(ZoneId.systemDefault()).toInstant())
+    }
+
+    /**
+     * Function to convert birthday to age
+     */
+    fun birthdaytoAge(bdayString: String): Int {
+        val format = "MM/dd/yyyy"
+        val bdayDate = stringToDate(bdayString, format)
+        val now = GregorianCalendar()
+        now.time = Date()
+        val birthdate = GregorianCalendar()
+        birthdate.time = bdayDate
+        return now.get(Calendar.YEAR) - birthdate.get(Calendar.YEAR)
+    }
+
+    /**
+     * Function to get a single instance of a match
+     */
+    suspend fun getMatch(match: RealtimeDBMatch): Match? {
+        val userId = match.usersMatched.firstOrNull {
+            it != (FirebaseAuth.getInstance().currentUser?.uid
+                ?: throw Exception("User not logged in"))
+        } ?: return null
+        val user = getUser(userId)
+        val picture = user.image1
+        return match.timestamp.toString().let {
+            Match(
+                match.matchId,
+                birthdaytoAge(user.birthday), // need to properly calculate age from birthday
+                userId,
+                user.name,
+                picture,
+                it,
+                match.lastMessage
+            )
+        }
+    }
+
+    fun getMatchId(userId1: String, userId2: String): String {
         return if (userId1 < userId2) {
             "$userId1-$userId2"
         } else {
@@ -207,7 +315,8 @@ class FirebaseDataSource() {
         val senderId = FirebaseAuth.getInstance().currentUser?.phoneNumber
             ?: throw Exception("User not logged in")
         val currentTime: String = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
-        val currentDate: String = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()).format(Date())
+        val currentDate: String =
+            SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()).format(Date())
 
         val map = hashMapOf<String, String>()
         map["message"] = message
@@ -257,7 +366,8 @@ class FirebaseDataSource() {
 
     fun setUserInfo(number: String, location: String): UserModel {
         val user = UserModel()
-        val databaseReference = FirebaseDatabase.getInstance().getReference("users").child(number)
+        val databaseReference =
+            FirebaseDatabase.getInstance().getReference("users").child(number)
         databaseReference.addListenerForSingleValueEvent(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 if (snapshot.exists()) {

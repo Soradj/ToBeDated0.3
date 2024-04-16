@@ -74,13 +74,13 @@ val notifiGroup = Random.nextBoolean()
 val notifiChat = Random.nextInt(0, 41) // Generates a random integer between 0 and 40
 
 class DatingActivity : ComponentActivity() {
-    private lateinit var token :String
-    private lateinit var location :String
+    private lateinit var token: String
+    private lateinit var location: String
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         token = intent.getStringExtra("token").toString()
         location = intent.getStringExtra("location").toString()
-        if(location.isEmpty()){
+        if (location.isEmpty()) {
             location = "/"
         }
         val sharedPreference = getSharedPreferences("user_data", Context.MODE_PRIVATE)
@@ -93,12 +93,19 @@ class DatingActivity : ComponentActivity() {
             }
         }
     }
-    fun uploadPhotos(newImage: String, imageNumber: Int, imageName: String, callback: (String) -> Unit) {
+
+    fun uploadPhotos(
+        newImage: String,
+        imageNumber: Int,
+        imageName: String,
+        callback: (String) -> Unit
+    ) {
         lifecycleScope.launch {
             val result = storeImageAttempt(newImage, contentResolver, imageNumber, imageName)
             callback(result)
         }
     }
+
     fun clearUserToken() {
         val sharedPreferences = getSharedPreferences("user_data", Context.MODE_PRIVATE)
         val editor = sharedPreferences.edit()
@@ -109,7 +116,8 @@ class DatingActivity : ComponentActivity() {
         startActivity(intent)
         finish()
     }
-    fun switchActivities(switchActivity:String){
+
+    fun switchActivities(switchActivity: String) {
         val intent = when (switchActivity) {
             "dating" -> {
                 Intent(this, DatingActivity::class.java)
@@ -122,6 +130,7 @@ class DatingActivity : ComponentActivity() {
             "friends" -> {
                 Intent(this, FriendsActivity::class.java)
             }
+
             else -> {
                 Intent(this, DatingActivity::class.java)
             }
@@ -137,7 +146,11 @@ class DatingActivity : ComponentActivity() {
 Start of Seeking Screen
  */
 @Composable
-fun SearchingScreen(vmDating: DatingViewModel, dating: DatingActivity, navController: NavHostController) {
+fun SearchingScreen(
+    vmDating: DatingViewModel,
+    dating: DatingActivity,
+    navController: NavHostController
+) {
     var isNext by rememberSaveable { mutableStateOf(true) }
     var showReport by rememberSaveable { mutableStateOf(false) }
     var currentProfileIndex by rememberSaveable { mutableIntStateOf(0) } ///MIGHT CHANGE THIS
@@ -145,20 +158,23 @@ fun SearchingScreen(vmDating: DatingViewModel, dating: DatingActivity, navContro
     val state = rememberScrollState()
     LaunchedEffect(Unit) {
         //TODO This checks to see if the list is empty or not, This NEEDs to be avilialbe some hows
-        if(vmDating.getNextPotential(currentProfileIndex) != null) {
-            currentPotential.value = vmDating.getNextPotential(currentProfileIndex)//MIGHT CHANGE THIS
-        }else{
-            isNext = false//This is important, if there are no users this shows a blank screen and not crash
+        if (vmDating.getNextPotential(currentProfileIndex) != null) {
+            currentPotential.value =
+                vmDating.getNextPotential(currentProfileIndex)//MIGHT CHANGE THIS
+        } else {
+            isNext =
+                false//This is important, if there are no users this shows a blank screen and not crash
         }
         state.scrollTo(0) // After resetting, reset the state variable to false
     }
 
     ///TODO THIS DOES THE SAME CHECK AS ABOVE to see if there is an avilibe user to prevent crashes
-    fun nextProfile(newPotential: UserModel?){
-        if(newPotential != null){
+    fun nextProfile(newPotential: UserModel?) {
+        if (newPotential != null) {
             currentPotential.value = newPotential///MIGHT change this
-        }else{
-            isNext = false//This is important, if there are no users this shows a blank screen and not crash
+        } else {
+            isNext =
+                false//This is important, if there are no users this shows a blank screen and not crash
         }
     }
 
@@ -175,8 +191,8 @@ fun SearchingScreen(vmDating: DatingViewModel, dating: DatingActivity, navContro
         currentScreen = {
             if (isNext) {
                 currentPotential.value?.let { user ->
-                    var location  = "x miles"
-                    if(user.location != "" && vmDating.getUser().location != ""){
+                    var location = "x miles"
+                    if (user.location != "" && vmDating.getUser().location != "") {
                         location = calcDistance(user.location, vmDating.getUser().location)
                     }
                     UserInfo(
@@ -186,16 +202,32 @@ fun SearchingScreen(vmDating: DatingViewModel, dating: DatingActivity, navContro
                             SearchingButtons(
                                 onClickLike = {
                                     currentProfileIndex++
-                                    nextProfile(vmDating.likedCurrentPotential(currentProfileIndex, currentPotential.value!!))
+                                    vmDating.likeCurrentProfile(
+                                        vmDating.getCurrentUserId(),
+                                        currentPotential.value!!
+                                    )
+                                    nextProfile(
+                                        vmDating.likedCurrentPotential(
+                                            currentProfileIndex,
+                                            currentPotential.value!!
+                                        )
+                                    )
                                     /*TODO Add an animation or something*/
                                 },
                                 onClickPass = {
                                     currentProfileIndex++//THIS SHIT CAN GO
-                                    nextProfile(vmDating.passedCurrentPotential(currentProfileIndex, currentPotential.value!!))
+                                    nextProfile(
+                                        vmDating.passedCurrentPotential(
+                                            currentProfileIndex,
+                                            currentPotential.value!!
+                                        )
+                                    )
                                     /*TODO Add an animation or something*/
                                 },
-                                onClickReport = { showReport = true /*TODO Add an animation or something*/},
-                                onClickSuggest = { /*TODO Add an animation or something*/  },
+                                onClickReport = {
+                                    showReport = true /*TODO Add an animation or something*/
+                                },
+                                onClickSuggest = { /*TODO Add an animation or something*/ },
                             )
                         },
                     )
@@ -204,14 +236,20 @@ fun SearchingScreen(vmDating: DatingViewModel, dating: DatingActivity, navContro
                 Comeback(text = "Come Back when theres more people to see =0)")
             }
         })
-    if(showReport){
+    if (showReport) {
         AlertDialogBox(
             dialogTitle = "Report!",
             onDismissRequest = { showReport = false },
             dialogText = "This account will be looked into and they will not be able to view your profile",
-            onConfirmation = { showReport = false
+            onConfirmation = {
+                showReport = false
                 currentProfileIndex++
-                nextProfile(vmDating.reportedCurrentPotential(currentProfileIndex, currentPotential.value!!))
+                nextProfile(
+                    vmDating.reportedCurrentPotential(
+                        currentProfileIndex,
+                        currentPotential.value!!
+                    )
+                )
             }
         )
     }
@@ -219,16 +257,45 @@ fun SearchingScreen(vmDating: DatingViewModel, dating: DatingActivity, navContro
 }
 
 @Composable
-fun SearchPreferenceScreen(navController: NavHostController, vmDating: DatingViewModel){
+fun SearchPreferenceScreen(navController: NavHostController, vmDating: DatingViewModel) {
     val currentUser = vmDating.getUser()
-    val searchPref by remember { mutableStateOf( currentUser.userPref) }
+    val searchPref by remember { mutableStateOf(currentUser.userPref) }
 
-    val userPref= listOf(searchPref.gender, searchPref.zodiac, searchPref.sexualOri, searchPref.mbti,
-        searchPref.children, searchPref.familyPlans, searchPref.meetUp, searchPref.education, searchPref.religion, searchPref.politicalViews,
-        searchPref.relationshipType, searchPref.intentions, searchPref.drink, searchPref.smoke, searchPref.weed)
+    val userPref = listOf(
+        searchPref.gender,
+        searchPref.zodiac,
+        searchPref.sexualOri,
+        searchPref.mbti,
+        searchPref.children,
+        searchPref.familyPlans,
+        searchPref.meetUp,
+        searchPref.education,
+        searchPref.religion,
+        searchPref.politicalViews,
+        searchPref.relationshipType,
+        searchPref.intentions,
+        searchPref.drink,
+        searchPref.smoke,
+        searchPref.weed
+    )
 
-    val pref = listOf("Gender", "Zodiac Sign", "Sexual Orientation", "Mbti", "Children", "Family Plans", "Meeting Up",
-        "Education", "Religion", "Political Views", "Relationship Type","Intentions", "Drink", "Smokes", "Weed")
+    val pref = listOf(
+        "Gender",
+        "Zodiac Sign",
+        "Sexual Orientation",
+        "Mbti",
+        "Children",
+        "Family Plans",
+        "Meeting Up",
+        "Education",
+        "Religion",
+        "Political Views",
+        "Relationship Type",
+        "Intentions",
+        "Drink",
+        "Smokes",
+        "Weed"
+    )
     InsideSearchSettings(
         nav = navController,
         searchSettings = {
@@ -238,53 +305,89 @@ fun SearchPreferenceScreen(navController: NavHostController, vmDating: DatingVie
                     .padding(15.dp, 0.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                AgeSlider(preferredMin = currentUser.userPref.ageRange.min, preferredMax = currentUser.userPref.ageRange.max, vmDating = vmDating, currentUser = currentUser)
+                AgeSlider(
+                    preferredMin = currentUser.userPref.ageRange.min,
+                    preferredMax = currentUser.userPref.ageRange.max,
+                    vmDating = vmDating,
+                    currentUser = currentUser
+                )
                 Spacer(modifier = Modifier.height(14.dp))
-                DistanceSlider(preferredMax = currentUser.userPref.maxDistance, vmDating = vmDating, currentUser = currentUser)
+                DistanceSlider(
+                    preferredMax = currentUser.userPref.maxDistance,
+                    vmDating = vmDating,
+                    currentUser = currentUser
+                )
                 Spacer(modifier = Modifier.height(14.dp))
-                SeekingBox(desiredSex = currentUser.seeking, navController )
+                SeekingBox(desiredSex = currentUser.seeking, navController)
                 Spacer(modifier = Modifier.height(14.dp))
-                HorizontalDivider(Modifier.fillMaxWidth(), color = AppTheme.colorScheme.onBackground, thickness = 2.dp)
+                HorizontalDivider(
+                    Modifier.fillMaxWidth(),
+                    color = AppTheme.colorScheme.onBackground,
+                    thickness = 2.dp
+                )
                 Spacer(modifier = Modifier.height(6.dp))
                 GenericTitleText(text = "Premium Settings")
                 Spacer(modifier = Modifier.height(4.dp))
-                HorizontalDivider(Modifier.fillMaxWidth(), color = AppTheme.colorScheme.onBackground, thickness = 2.dp)
+                HorizontalDivider(
+                    Modifier.fillMaxWidth(),
+                    color = AppTheme.colorScheme.onBackground,
+                    thickness = 2.dp
+                )
                 Spacer(modifier = Modifier.height(14.dp))
-                for (i in pref.indices){
-                    OtherPreferences(title = pref[i], navController = navController, searchPref = userPref[i], clickable = true, index = i)
+                for (i in pref.indices) {
+                    OtherPreferences(
+                        title = pref[i],
+                        navController = navController,
+                        searchPref = userPref[i],
+                        clickable = true,
+                        index = i
+                    )
                     Spacer(modifier = Modifier.height(14.dp))
                 }
             }
         }
     )
 }
+
 @Composable
-fun ChangePreference(navController: NavHostController, title:String, index:Int, vmDating: DatingViewModel){
-    if(index == 69420){
-        ChangeSeekingScreen(navController,
+fun ChangePreference(
+    navController: NavHostController,
+    title: String,
+    index: Int,
+    vmDating: DatingViewModel
+) {
+    if (index == 69420) {
+        ChangeSeekingScreen(
+            navController,
             title = title,
             vmDating = vmDating,
             index = index,
         )
-    }else{
-        ChangePreferenceScreen(navController,
+    } else {
+        ChangePreferenceScreen(
+            navController,
             title = title,
             vmDating = vmDating,
             index = index,
         )
     }
 }
+
 /*
 End of Seeking Screens
 Start of Profile Screens
  */
 @Composable
-fun ProfileScreen(navController: NavHostController, vmDating: DatingViewModel, dating:DatingActivity){
+fun ProfileScreen(
+    navController: NavHostController,
+    vmDating: DatingViewModel,
+    dating: DatingActivity
+) {
     val currentUser = vmDating.getUser()
     val isLoading = remember { mutableStateOf(true) }
     LaunchedEffect(Unit) {
         if (currentUser.name.isNotEmpty()) {
-                isLoading.value = false
+            isLoading.value = false
         }
     }
     val state = rememberScrollState()
@@ -302,28 +405,49 @@ fun ProfileScreen(navController: NavHostController, vmDating: DatingViewModel, d
             UserInfo(
                 currentUser,
                 bioClick = { navController.navigate("BioEdit") },
-                prompt1Click = {navController.navigate("PromptEdit/1")},
-                prompt2Click = {navController.navigate("PromptEdit/2")},
-                prompt3Click = {navController.navigate("PromptEdit/3")},
-                photoClick = {navController.navigate("ChangePhoto")},
+                prompt1Click = { navController.navigate("PromptEdit/1") },
+                prompt2Click = { navController.navigate("PromptEdit/2") },
+                prompt3Click = { navController.navigate("PromptEdit/3") },
+                photoClick = { navController.navigate("ChangePhoto") },
                 doesEdit = true
             )
         }
     )
 }
+
 @Composable
-fun EditProfileScreen(navController: NavHostController, dating: DatingActivity, vmDating: DatingViewModel){
+fun EditProfileScreen(
+    navController: NavHostController,
+    dating: DatingActivity,
+    vmDating: DatingViewModel
+) {
     val currentUser = vmDating.getUser()
-    var seen by remember { mutableStateOf(currentUser.seeMe)    }
+    var seen by remember { mutableStateOf(currentUser.seeMe) }
 
-    val userSettings= listOf(currentUser.ethnicity, currentUser.pronoun, currentUser.gender, currentUser.sexOrientation,
-        currentUser.meetUp, currentUser.relationship,  currentUser.intentions, currentUser.star, //currentUser.mbti,
-        currentUser.children, currentUser.family,  currentUser.drink, currentUser.smoke, currentUser.weed,
-        currentUser.politics, currentUser.education, currentUser.religion,)
+    val userSettings = listOf(
+        currentUser.ethnicity,
+        currentUser.pronoun,
+        currentUser.gender,
+        currentUser.sexOrientation,
+        currentUser.meetUp,
+        currentUser.relationship,
+        currentUser.intentions,
+        currentUser.star, //currentUser.mbti,
+        currentUser.children,
+        currentUser.family,
+        currentUser.drink,
+        currentUser.smoke,
+        currentUser.weed,
+        currentUser.politics,
+        currentUser.education,
+        currentUser.religion,
+    )
 
-    val pref = listOf("Ethnicity", "Pronoun", "Gender", "Sexual Orientation",
+    val pref = listOf(
+        "Ethnicity", "Pronoun", "Gender", "Sexual Orientation",
         "Meeting Up", "Relationship Type", "Intentions", "Zodiac Sign", //"Mbti",
-        "Children", "Family",  "Drink", "Smokes", "Weed", "Political Views", "Education", "Religion")
+        "Children", "Family", "Drink", "Smokes", "Weed", "Political Views", "Education", "Religion"
+    )
     InsideProfileSettings(
         nav = navController,
         editProfile = {
@@ -343,7 +467,8 @@ fun EditProfileScreen(navController: NavHostController, dating: DatingActivity, 
                     ) {
                         GenericTitleText(text = "Only be seen by people you like")
                         Checkbox(checked = seen,
-                            onCheckedChange = {seen = !seen
+                            onCheckedChange = {
+                                seen = !seen
                                 currentUser.seeMe = seen
                                 vmDating.updateUser(currentUser)
                             })
@@ -352,8 +477,14 @@ fun EditProfileScreen(navController: NavHostController, dating: DatingActivity, 
             )
 
             Spacer(modifier = Modifier.height(8.dp))
-            for (i in pref.indices){
-                EditProfile(title = pref[i], navController = navController, userSetting = userSettings[i], clickable = true, index = i)
+            for (i in pref.indices) {
+                EditProfile(
+                    title = pref[i],
+                    navController = navController,
+                    userSetting = userSettings[i],
+                    clickable = true,
+                    index = i
+                )
                 Spacer(modifier = Modifier.height(14.dp))
             }
             LogOut(dating)
@@ -364,29 +495,50 @@ fun EditProfileScreen(navController: NavHostController, dating: DatingActivity, 
                     .fillMaxSize()
                     .padding(25.dp, 0.dp)
             ) {
-                OutLinedButton(onClick = {/*TODO deactivate account*/   }, text = "Deactivate Account", outLineColor = Color.Red)
+                OutLinedButton(
+                    onClick = {/*TODO deactivate account*/ },
+                    text = "Deactivate Account",
+                    outLineColor = Color.Red
+                )
                 Spacer(modifier = Modifier.height(8.dp))
-                OutLinedButton(onClick = {/*TODO report and delete account*/   }, text = "Delete Account", outLineColor = Color.Red, textColor = Color.Red)
+                OutLinedButton(
+                    onClick = {/*TODO report and delete account*/ },
+                    text = "Delete Account",
+                    outLineColor = Color.Red,
+                    textColor = Color.Red
+                )
             }
         }
     )
 }
+
 /*
 End of Profile Screens
 */
 @Composable
-fun ChangeProfileScreen(navController: NavHostController, title:String, index:Int, vmDating: DatingViewModel){
-    ChangeProfile(navController,
-            title = title,
-            vmDating = vmDating,
-            index = index,
-        )
+fun ChangeProfileScreen(
+    navController: NavHostController,
+    title: String,
+    index: Int,
+    vmDating: DatingViewModel
+) {
+    ChangeProfile(
+        navController,
+        title = title,
+        vmDating = vmDating,
+        index = index,
+    )
 }
+
 /*
 Start of Message Screens
  */
 @Composable
-fun ChatsScreen(navController: NavHostController, vmDating: DatingViewModel, dating: DatingActivity){
+fun ChatsScreen(
+    navController: NavHostController,
+    vmDating: DatingViewModel,
+    dating: DatingActivity
+) {
     val matchedUsers = vmDating.getMatches() //TODO this has to be changed to be matches users
     //TODO ORDER MATCHED USERS HERE
     //val inChat by rememberSaveable { mutableStateOf(false)}
@@ -418,12 +570,14 @@ fun ChatsScreen(navController: NavHostController, vmDating: DatingViewModel, dat
         }
     )
 }
+
 @Composable
-fun MessagerScreen(navController: NavHostController, vmDating: DatingViewModel){
+fun MessagerScreen(navController: NavHostController, vmDating: DatingViewModel) {
     val talkedUser = vmDating.getTalkedUser()
     val senderId = vmDating.getUser().number
     val receiverId = talkedUser.number
-    val chatId = vmDating.getChatId(senderId, receiverId) //change to UID later need to account for reverses
+    val chatId =
+        vmDating.getChatId(senderId, receiverId) //change to UID later need to account for reverses
     //TODO need to make this nested I think
     var message by rememberSaveable { mutableStateOf("") }
     val messageModel = viewModel { MessageViewModel(MyApp.x) }
@@ -435,14 +589,16 @@ fun MessagerScreen(navController: NavHostController, vmDating: DatingViewModel){
         nav = navController,
         titleText = talkedUser.name,
         value = message,
-        onValueChange = { message = it},
-        sendMessage = { messageModel.storeChatData(chatId, message)
-                      message = ""},
+        onValueChange = { message = it },
+        sendMessage = {
+            messageModel.storeChatData(chatId, message)
+            message = ""
+        },
         goToProfile = { navController.navigate("MatchedUserProfile") },
         chatSettings = {},
-        startCall = {/* TODO Start normal Call (Need to make a screen for it)*/},
-        startVideoCall = {/* TODO Start Video Call (Need to make a screen for it)*/},
-        sendAttachment = {/* TODO photos or attachments Message...advise if we should keep*/},
+        startCall = {/* TODO Start normal Call (Need to make a screen for it)*/ },
+        startVideoCall = {/* TODO Start Video Call (Need to make a screen for it)*/ },
+        sendAttachment = {/* TODO photos or attachments Message...advise if we should keep*/ },
         messages = {
             MessageScreen(
                 chatId = chatId,
@@ -454,8 +610,9 @@ fun MessagerScreen(navController: NavHostController, vmDating: DatingViewModel){
         }
     )
 }
+
 @Composable
-fun MatchedUserProfile(nav: NavHostController, vmDating: DatingViewModel){
+fun MatchedUserProfile(nav: NavHostController, vmDating: DatingViewModel) {
     val talkedUser = vmDating.getTalkedUser()
     InsideMatchedProfile(
         nav = nav,
@@ -474,7 +631,7 @@ fun MatchedUserProfile(nav: NavHostController, vmDating: DatingViewModel){
                     ) {
                         OutLinedButton(
                             onClick = {/*TODO report and unmatch account*/
-                                      nav.navigate("ChatsScreen")
+                                nav.navigate("ChatsScreen")
                             },
                             text = "Report",
                             outLineColor = Color.Red,
@@ -494,12 +651,13 @@ fun MatchedUserProfile(nav: NavHostController, vmDating: DatingViewModel){
         }
     )
 }
+
 /*
 End of Message Screens
 Start of Groups Screens
  */
 @Composable
-fun GroupsScreen(navController: NavHostController, dating: DatingActivity){
+fun GroupsScreen(navController: NavHostController, dating: DatingActivity) {
     val state = rememberScrollState()
     TopAndBotBarsDating(
         dating = dating,
@@ -515,8 +673,13 @@ fun GroupsScreen(navController: NavHostController, dating: DatingActivity){
         }
     )
 }
+
 @Composable
-fun SomeScreen(navController: NavHostController, dating: DatingActivity, vmDating: DatingViewModel){
+fun SomeScreen(
+    navController: NavHostController,
+    dating: DatingActivity,
+    vmDating: DatingViewModel
+) {
     val passed = 12 //viewmodel call here
     val liked = 12 //viewmodel call here
     val seen = 12 //viewmodel call here
@@ -537,7 +700,7 @@ fun SomeScreen(navController: NavHostController, dating: DatingActivity, vmDatin
             Column(
                 modifier = Modifier.padding(horizontal = 25.dp)
             ) {
-                GenericTitleText(text ="You're Stats", style = AppTheme.typography.titleLarge)
+                GenericTitleText(text = "You're Stats", style = AppTheme.typography.titleLarge)
                 Spacer(modifier = Modifier.height(2.dp))
                 HorizontalDivider(modifier = Modifier.fillMaxWidth())
                 Spacer(modifier = Modifier.height(12.dp))
@@ -549,7 +712,10 @@ fun SomeScreen(navController: NavHostController, dating: DatingActivity, vmDatin
                 Spacer(modifier = Modifier.height(8.dp))
                 GenericTitleText(text = "Missed connections: $missed")
                 Spacer(modifier = Modifier.height(24.dp))
-                GenericTitleText(text ="Unmeet connections", style = AppTheme.typography.titleLarge)
+                GenericTitleText(
+                    text = "Unmeet connections",
+                    style = AppTheme.typography.titleLarge
+                )
                 Spacer(modifier = Modifier.height(2.dp))
                 HorizontalDivider(modifier = Modifier.fillMaxWidth())
                 Spacer(modifier = Modifier.height(12.dp))
@@ -559,8 +725,9 @@ fun SomeScreen(navController: NavHostController, dating: DatingActivity, vmDatin
         }
     )
 }
+
 @Composable
-fun ComeBackScreen(navController: NavHostController, dating: DatingActivity){
+fun ComeBackScreen(navController: NavHostController, dating: DatingActivity) {
     val state = rememberScrollState()
     TopAndBotBarsDating(
         dating = dating,

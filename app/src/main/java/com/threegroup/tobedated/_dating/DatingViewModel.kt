@@ -1,14 +1,24 @@
 package com.threegroup.tobedated._dating
 
 import android.util.Log
+import androidx.compose.runtime.State
+import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
+import com.threegroup.tobedated.NewMatch
+import com.threegroup.tobedated.RealtimeDBMatch
 import com.threegroup.tobedated.shareclasses.Repository
 import com.threegroup.tobedated.shareclasses.models.UserModel
+import kotlinx.coroutines.Dispatchers.IO
+import kotlinx.coroutines.Dispatchers.Main
+import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class DatingViewModel(private var repository: Repository) : ViewModel() {
     val list = ArrayList<UserModel>()
@@ -87,6 +97,53 @@ class DatingViewModel(private var repository: Repository) : ViewModel() {
         return getNextPotential(currentProfileIndex)
     }
 
+    private var _likedProfile = mutableStateOf(NewMatch())
+    val likedProfile: State<NewMatch> = _likedProfile
+
+    // TODO not 100% sure on this one--wrote it kinda fast
+    fun likeCurrentProfile(currentUserId: String, currentProfile: UserModel): NewMatch? {
+        viewModelScope.launch(IO) {
+            val deferredResult = async {
+                repository.likeOrPass(currentUserId, currentProfile.number, true)?.let { model ->
+                    NewMatch( // can use NewMatch to display the match splash screen
+                        model.matchId,
+                        currentProfile.number,
+                        currentProfile.name,
+                        listOf(
+                            currentProfile.image1,
+                            currentProfile.image2,
+                            currentProfile.image3,
+                            currentProfile.image4
+                        )
+                    )
+                }
+            }
+            val queryResult = deferredResult.await()
+            withContext(Main) { // TODO with context might be an issue
+                if (queryResult != null) {
+                    _likedProfile.value = queryResult
+                }
+            }
+        }
+        return likedProfile.value
+    }
+
+    suspend fun passCurrentProfile(currentUserId: String, currentProfile: UserModel) {
+        repository.likeOrPass(currentUserId, currentProfile.number, false)
+    }
+
+    private var _matchList = mutableStateOf(listOf<RealtimeDBMatch>())
+    val matchList: State<List<RealtimeDBMatch>> =
+        _matchList // call this in the composable as val matchlist by viewModel.matchList.observeAsState()
+
+    fun getMatchesFlow(userId: String) {
+        viewModelScope.launch(IO) {
+            repository.getMatchesFlow(userId).collect { matches ->
+                _matchList.value = matches
+            }
+        }
+    }
+
     //Stuff for setting and getting matches
     fun getMatches(): ArrayList<UserModel> {
         return list
@@ -112,6 +169,11 @@ class DatingViewModel(private var repository: Repository) : ViewModel() {
     }
 
     //Stuff for signed in user
+
+    fun getCurrentUserId(): String {
+        return repository.getCurrentUserId()
+    }
+
     fun getUser(): UserModel {
         return signedInUser
     }

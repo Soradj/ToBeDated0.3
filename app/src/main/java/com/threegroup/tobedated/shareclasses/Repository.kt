@@ -19,6 +19,10 @@ class Repository(
         return firebaseDataSource.checkUserExist(number)
     }
 
+    fun getCurrentUserId(): String {
+       return firebaseDataSource.getCurrentUserId()
+    }
+
     fun getCurrentUserSenderId(): String {
         return firebaseDataSource.getCurrentUserSenderId()
     }
@@ -35,9 +39,14 @@ class Repository(
         return firebaseDataSource.updateUserData(userUpdates)
     }
 
-    suspend fun likeUser(userId: String, likedUserId: String, isLike: Boolean): RealtimeDBMatch? {
-        return firebaseDataSource.likeUser(userId, likedUserId, isLike)
+    suspend fun likeOrPass(userId: String, likedUserId: String, isLike: Boolean): RealtimeDBMatch? {
+        return firebaseDataSource.likeOrPass(userId, likedUserId, isLike)
     }
+
+    suspend fun getMatchesFlow(userId: String): Flow<List<RealtimeDBMatch>> {
+       return firebaseDataSource.getMatchesFlow(userId)
+    }
+
 
     fun getChatData(chatId: String?): Flow<List<MessageModel>> =
         firebaseDataSource.getChatData(chatId).map { list ->

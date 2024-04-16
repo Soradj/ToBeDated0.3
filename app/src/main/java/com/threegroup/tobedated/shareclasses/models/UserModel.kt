@@ -40,7 +40,10 @@ data class UserModel(
     var number          :String = "",
     var verified        :Boolean = false,
     var seeMe           :Boolean = false,
-    var userPref        : UserSearchPreferenceModel = UserSearchPreferenceModel()
+    var userPref        : UserSearchPreferenceModel = UserSearchPreferenceModel(),
+    var liked: List<String> = emptyList(),
+    var passed: List<String> = emptyList(),
+    var blocked: List<String> = emptyList()
 )
 data class UserSearchPreferenceModel(
     var ageRange            : AgeRange = AgeRange(18, 35),

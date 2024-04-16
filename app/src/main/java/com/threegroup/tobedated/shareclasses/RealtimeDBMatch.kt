@@ -3,7 +3,7 @@ package com.threegroup.tobedated
 import com.google.firebase.database.ServerValue
 
 data class RealtimeDBMatch(
-    var id: String="",
+    var matchId: String="",
     val usersMatched: List<String> = emptyList(),
     val timestamp: Map<String, String> = mapOf(),
     val lastMessage: String?=null
