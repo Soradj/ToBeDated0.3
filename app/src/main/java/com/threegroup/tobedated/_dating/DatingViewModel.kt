@@ -1,14 +1,18 @@
 package com.threegroup.tobedated._dating
 
+import androidx.compose.runtime.collectAsState
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.database.FirebaseDatabase
 import com.threegroup.tobedated.shareclasses.Repository
 import com.threegroup.tobedated.shareclasses.models.UserModel
+import kotlinx.coroutines.Dispatchers.IO
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 class DatingViewModel(private var repository: Repository) : ViewModel() {
     val list = ArrayList<UserModel>()
@@ -82,10 +86,19 @@ class DatingViewModel(private var repository: Repository) : ViewModel() {
         signedInUser = updatedUser
     }
 
-    fun setLoggedInUser(userPhoneNumber: String, location: String) { //TODO THIS IS THE FUCKING ERROR
-        signedInUser = repository.setUserInfo(userPhoneNumber, location)
+    private val _userModel = MutableStateFlow<UserModel?>(null)
+    val userModel: StateFlow<UserModel?> = _userModel
+    fun setLoggedInUser(
+        userPhoneNumber: String,
+        location: String
+    ) { //TODO THIS IS THE FUCKING ERROR
+        viewModelScope.launch(IO) {
+            repository.setUserInfo(userPhoneNumber, location).collect { userInfo ->
+                _userModel.value = userInfo
+            }
+            signedInUser = userModel.value!!
+        }
     }
-
 }
 
 
