@@ -34,9 +34,9 @@ class DatingViewModel(private var repository: Repository) : ViewModel() {
     private var _likedProfile = mutableStateOf(NewMatch())
     private val likedProfile: State<NewMatch> = _likedProfile
     val potentialUserData: StateFlow<Pair<List<MatchedUserModel>, Int>> =
-        repository.getPotentialUserData()
-            .map { (userList, currentIndex) -> userList to currentIndex }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), Pair(emptyList(), 0))
+            repository.getPotentialUserData()
+                .map { (userList, currentIndex) -> userList to currentIndex }
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), Pair(emptyList(), 0))
 
     fun getNextPotential(currentProfileIndex: Int): MatchedUserModel? {
         val potentialUsers = potentialUserData.value.first

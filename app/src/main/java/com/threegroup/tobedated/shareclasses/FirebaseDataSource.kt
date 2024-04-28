@@ -28,6 +28,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
@@ -36,6 +37,10 @@ import java.util.Locale
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 class FirebaseDataSource() {
     /*
@@ -130,49 +135,214 @@ class FirebaseDataSource() {
     /**
     Dating discovery related functions
      */
-    fun getPotentialUserData(): Flow<Pair<List<MatchedUserModel>, Int>> = callbackFlow {
-        val dbRef: DatabaseReference =
-            FirebaseDatabase.getInstance().getReference("users")
-        val valueEventListener = object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                val list = mutableListOf<MatchedUserModel>()
-                for (data in snapshot.children) {
-                    try {
-                        val userModel = data.getValue(MatchedUserModel::class.java)
-
-                        if (userModel?.number != FirebaseAuth.getInstance().currentUser?.phoneNumber) {
-                            userModel?.let {
-                                if (!it.seeMe) {
-                                    list.add(it)
+    fun getPotentialUserData(): Flow<Pair<List<MatchedUserModel>, Int>> =
+        callbackFlow {
+            val userPref = getCurrentUserPreferences()
+            val currentUserId = FirebaseAuth.getInstance().currentUser?.phoneNumber
+            val dbRef: DatabaseReference =
+                FirebaseDatabase.getInstance().getReference("users")
+            val valueEventListener = object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val list = mutableListOf<MatchedUserModel>()
+                    for (data in snapshot.children) {
+                        try {
+                            val userModel = data.getValue(MatchedUserModel::class.java)
+                            if (userModel?.number != currentUserId) {
+                                userModel?.let {
+                                    CoroutineScope(Dispatchers.IO).launch {
+                                        if (!(currentUserId?.let { currentUserId ->
+                                                isProfileInteractedByUser(
+                                                    userModel,
+                                                    currentUserId
+                                                )
+                                            })!!
+                                        ) {
+                                            if (isProfileMatchingPreferences(
+                                                    userModel,
+                                                    userPref
+                                                )
+                                            )
+                                                list.add(it)
+                                        }
+                                    }
                                 }
                             }
+                            Log.d("USER_TAG", "Succeeded parsing UserModel")
+                        } catch (e: Exception) {
+                            Log.d("USER_TAG", "Error parsing UserModel", e)
                         }
-                        Log.d("USER_TAG", "Succeeded parsing UserModel")
-                    } catch (e: Exception) {
-                        Log.d("USER_TAG", "Error parsing UserModel", e)
                     }
+                    val sortedList = list.sortedByDescending { it.status }
+                    // Emit both the list of potential users and the current profile index
+                    trySend(Pair(sortedList, 0)).isSuccess
                 }
-                val sortedList = list.sortedByDescending { it.status }
-                // Emit both the list of potential users and the current profile index
-                trySend(Pair(sortedList, 0)).isSuccess
-            }
 
-            override fun onCancelled(error: DatabaseError) {
-                Log.d("USER_TAG", "Database error: ${error.message}")
+                override fun onCancelled(error: DatabaseError) {
+                    Log.d("USER_TAG", "Database error: ${error.message}")
+                }
+            }
+            dbRef.addValueEventListener(valueEventListener)
+            awaitClose {
+                dbRef.removeEventListener(valueEventListener)
             }
         }
-        dbRef.addValueEventListener(valueEventListener)
-        awaitClose {
-            dbRef.removeEventListener(valueEventListener)
+
+    private suspend fun getCurrentUserPreferences(): Flow<UserSearchPreferenceModel?> {
+        val auth: FirebaseAuth = FirebaseAuth.getInstance()
+        val currentUser = auth.currentUser
+        val database: FirebaseDatabase = FirebaseDatabase.getInstance()
+
+        return if (currentUser != null) {
+            val userId = currentUser.phoneNumber
+            val userPrefRef: DatabaseReference? =
+                userId?.let { database.getReference("users").child(it).child("userPref") }
+
+            userPrefRef?.let { ref ->
+                val userPrefDataFlow = MutableStateFlow<UserSearchPreferenceModel?>(null)
+                ref.addListenerForSingleValueEvent(object : ValueEventListener {
+                    override fun onDataChange(dataSnapshot: DataSnapshot) {
+                        val userPrefData = dataSnapshot.value as? Map<*, *>
+                        val userSearchPreference = userPrefData?.let {
+                            getUserSearchPreference(it)
+                        }
+                        userPrefDataFlow.value = userSearchPreference
+                    }
+
+                    override fun onCancelled(databaseError: DatabaseError) {
+                        // Handle errors here
+                        userPrefDataFlow.value = null
+                    }
+                })
+                userPrefDataFlow.asStateFlow()
+            } ?: MutableStateFlow<UserSearchPreferenceModel?>(null).asStateFlow()
+        } else {
+            MutableStateFlow<UserSearchPreferenceModel?>(null).asStateFlow()
         }
     }
+
+    private suspend fun isProfileMatchingPreferences(
+        potentialUser: MatchedUserModel,
+        userPrefFlow: Flow<UserSearchPreferenceModel?>
+    ): Boolean {
+        var userPref: UserSearchPreferenceModel? = null
+        userPrefFlow.collect { pref ->
+            userPref = pref
+        }
+        userPref ?: return false
+
+        // Calculate user age
+        val userAge = calcAge(potentialUser.birthday)
+
+        // Check if user's age is within the preferred age range
+        val isAgeInRange = userAge in userPref!!.ageRange.min..userPref!!.ageRange.max
+
+        // Check if user's location is within the preferred max distance
+        val isLocationWithinDistance = calcDistance(
+            potentialUser.location,
+            userPref!!.maxDistance.toString()
+        ) <= userPref!!.maxDistance.toString()
+
+        // Check other preferences
+        val isGenderMatch =
+            userPref!!.gender.isEmpty() || userPref!!.gender.equals(potentialUser.gender)
+        val isChildrenMatch =
+            userPref!!.children.isEmpty() || (userPref!!.children.equals(potentialUser.children))
+        val isEthnicityMatch =
+            userPref!!.mbti.isEmpty() || userPref!!.mbti.equals(potentialUser.testResultsMbti)
+        val isFamilyMatch =
+            userPref!!.familyPlans.isEmpty() || userPref!!.familyPlans.equals(potentialUser.family)
+        val isDrinkMatch =
+            userPref!!.drink.isEmpty() || userPref!!.drink.equals(potentialUser.drink)
+        val isEducationMatch =
+            userPref!!.education.isEmpty() || userPref!!.education.equals(potentialUser.education)
+        val isIntentionsMatch =
+            userPref!!.intentions.isEmpty() || userPref!!.intentions.equals(potentialUser.intentions)
+        val isMeetUpMatch =
+            userPref!!.meetUp.isEmpty() || userPref!!.meetUp.equals(potentialUser.meetUp)
+        val isPoliticsMatch =
+            userPref!!.politicalViews.isEmpty() || userPref!!.politicalViews.equals(potentialUser.politics)
+        val isRelationshipMatch =
+            userPref!!.relationshipType.isEmpty() || userPref!!.relationshipType.equals(
+                potentialUser.relationship
+            )
+        val isReligionMatch =
+            userPref!!.religion.isEmpty() || userPref!!.religion.equals(potentialUser.religion)
+        val isSexOriMatch =
+            userPref!!.sexualOri.isEmpty() || userPref!!.sexualOri.equals(potentialUser.sexOrientation)
+        val isSmokeMatch =
+            userPref!!.smoke.isEmpty() || userPref!!.smoke.equals(potentialUser.smoke)
+        val isWeedMatch = userPref!!.weed.isEmpty() || userPref!!.weed.equals(potentialUser.weed)
+
+        // Combine all checks
+        return isAgeInRange &&
+                isLocationWithinDistance &&
+                isGenderMatch &&
+                isChildrenMatch &&
+                isEthnicityMatch &&
+                isFamilyMatch &&
+                isDrinkMatch &&
+                isEducationMatch &&
+                isIntentionsMatch &&
+                isMeetUpMatch &&
+                isPoliticsMatch &&
+                isRelationshipMatch &&
+                isReligionMatch &&
+                isSexOriMatch &&
+                isSmokeMatch &&
+                isWeedMatch
+    }
+
+
+    private suspend fun isProfileInteractedByUser(
+        potentialUser: MatchedUserModel,
+        currentUserId: String
+    ): Boolean = coroutineScope {
+        val database = FirebaseDatabase.getInstance()
+        val likeOrPassRef = database.getReference("likeorpass")
+        val likedNodeRef = likeOrPassRef.child(currentUserId).child("liked")
+        val passedNodeRef = likeOrPassRef.child(currentUserId).child("passed")
+        val likedByNodeRef = likeOrPassRef.child(currentUserId).child("likedby")
+        val passedByNodeRef = likeOrPassRef.child(currentUserId).child("passedby")
+
+        val potentialUserId = potentialUser.number
+
+        // Function to check if the ID exists in a specific node
+        suspend fun checkNode(nodeRef: DatabaseReference): Boolean {
+            return suspendCancellableCoroutine { cont ->
+                nodeRef.addListenerForSingleValueEvent(object : ValueEventListener {
+                    override fun onDataChange(snapshot: DataSnapshot) {
+                        cont.resume(snapshot.hasChild(potentialUserId))
+                    }
+
+                    override fun onCancelled(error: DatabaseError) {
+                        // Handle error
+                        cont.resume(false)
+                    }
+                })
+            }
+        }
+
+        // Check all nodes asynchronously
+        val likedResult = async { checkNode(likedNodeRef) }
+        val passedResult = async { checkNode(passedNodeRef) }
+        val likedByResult = async { checkNode(likedByNodeRef) }
+        val passedByResult = async { checkNode(passedByNodeRef) }
+
+        // Await for all nodes to be checked
+        likedResult.await() || passedResult.await() || likedByResult.await() || passedByResult.await()
+    }
+
 
     /**
     Likes and match related functions
      */
 
-    private suspend fun hasUserLikedBack(userId: String, likedUserId: String): Boolean {
-        val likeOrPassRef = FirebaseDatabase.getInstance().getReference("likeorpass")
+    private suspend fun hasUserLikedBack(
+        userId: String,
+        likedUserId: String
+    ): Boolean {
+        val likeOrPassRef =
+            FirebaseDatabase.getInstance().getReference("likeorpass")
         val likedNodeRef = likeOrPassRef.child(likedUserId).child("liked")
 
         val likedSnapshot = likedNodeRef.child(userId).get().await()
@@ -187,7 +357,11 @@ class FirebaseDataSource() {
         }
     }
 
-    suspend fun likeOrPass(userId: String, likedUserId: String, isLike: Boolean): RealtimeDBMatch? {
+    suspend fun likeOrPass(
+        userId: String,
+        likedUserId: String,
+        isLike: Boolean
+    ): RealtimeDBMatch? {
         val database = FirebaseDatabase.getInstance()
 
         // Ensure "likeorpass" node exists
@@ -216,7 +390,8 @@ class FirebaseDataSource() {
 
             // Create a new match in the database
             val matchRef = database.getReference("matches/$matchId")
-            val matchData = RealtimeDBMatchProperties.toData(likedUserId, userId)
+            val matchData =
+                RealtimeDBMatchProperties.toData(likedUserId, userId)
             matchRef.setValue(matchData)
 
             // Add the matched users to the match node
@@ -234,10 +409,13 @@ class FirebaseDataSource() {
 
     private suspend fun setMatch(userId: String): Match {//TODO This should be done somewhere else
         val userSnapshot = withContext(Dispatchers.IO) {
-            FirebaseDatabase.getInstance().getReference("users").child(userId).get().await()
+            FirebaseDatabase.getInstance().getReference("users").child(userId)
+                .get().await()
         }
-        val userName = userSnapshot.child("name").getValue(String::class.java) ?: ""
-        val userImage1 = userSnapshot.child("image1").getValue(String::class.java) ?: ""
+        val userName =
+            userSnapshot.child("name").getValue(String::class.java) ?: ""
+        val userImage1 =
+            userSnapshot.child("image1").getValue(String::class.java) ?: ""
 
         return Match(
             id = userId,
@@ -249,40 +427,49 @@ class FirebaseDataSource() {
         )
     }
 
-    suspend fun getMatchesFlow(userId: String): Flow<List<RealtimeDBMatch>> = callbackFlow {
-        val ref = FirebaseDatabase.getInstance().getReference("matches")
-        val listener = object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                val matches = mutableListOf<RealtimeDBMatch>()
-                for (data in snapshot.children) {
-                    try {
-                        val match = data.getValue(RealtimeDBMatch::class.java)
-                        match?.let {
-                            // Check if userId appears at the start or end of usersMatched field
-                            if (it.usersMatched.contains(userId)) {
-                                matches.add(it)
+    suspend fun getMatchesFlow(userId: String): Flow<List<RealtimeDBMatch>> =
+        callbackFlow {
+            val ref = FirebaseDatabase.getInstance().getReference("matches")
+            val listener = object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val matches = mutableListOf<RealtimeDBMatch>()
+                    for (data in snapshot.children) {
+                        try {
+                            val match =
+                                data.getValue(RealtimeDBMatch::class.java)
+                            match?.let {
+                                // Check if userId appears at the start or end of usersMatched field
+                                if (it.usersMatched.contains(userId)) {
+                                    matches.add(it)
+                                }
                             }
+                            Log.d(
+                                "MATCH_TAG",
+                                "Succeeded parsing RealtimeDBMatch"
+                            )
+                        } catch (e: Exception) {
+                            Log.d(
+                                "MATCH_TAG",
+                                "Error parsing RealtimeDBMatch",
+                                e
+                            )
                         }
-                        Log.d("MATCH_TAG", "Succeeded parsing RealtimeDBMatch")
-                    } catch (e: Exception) {
-                        Log.d("MATCH_TAG", "Error parsing RealtimeDBMatch", e)
                     }
+                    trySend(matches).isSuccess // Emit the list of matches to the flow
                 }
-                trySend(matches).isSuccess // Emit the list of matches to the flow
+
+                override fun onCancelled(error: DatabaseError) {
+                    Log.d("MATCH_TAG", "Database error: ${error.message}")
+                }
             }
 
-            override fun onCancelled(error: DatabaseError) {
-                Log.d("MATCH_TAG", "Database error: ${error.message}")
+            val query = ref.orderByChild(RealtimeDBMatchProperties.usersMatched)
+            query.addListenerForSingleValueEvent(listener)
+
+            awaitClose {
+                query.removeEventListener(listener)
             }
         }
-
-        val query = ref.orderByChild(RealtimeDBMatchProperties.usersMatched)
-        query.addListenerForSingleValueEvent(listener)
-
-        awaitClose {
-            query.removeEventListener(listener)
-        }
-    }
 
     /**
      * Function to get a single instance of a match
@@ -293,10 +480,13 @@ class FirebaseDataSource() {
                 ?: throw Exception("User not logged in"))
         } ?: return null
         val userSnapshot = withContext(Dispatchers.IO) {
-            FirebaseDatabase.getInstance().getReference("users").child(userId).get().await()
+            FirebaseDatabase.getInstance().getReference("users").child(userId)
+                .get().await()
         }
-        val userName = userSnapshot.child("name").getValue(String::class.java) ?: ""
-        val userImage1 = userSnapshot.child("image1").getValue(String::class.java) ?: ""
+        val userName =
+            userSnapshot.child("name").getValue(String::class.java) ?: ""
+        val userImage1 =
+            userSnapshot.child("image1").getValue(String::class.java) ?: ""
 
         return match.timestamp.toString().let {
             Match(
@@ -335,34 +525,35 @@ class FirebaseDataSource() {
         userReportedRef.child("reportedby").push().setValue(reportingUserId)
 
         // Increment the report count
-        userReportedRef.child("count").runTransaction(object : Transaction.Handler {
-            override fun doTransaction(currentData: MutableData): Transaction.Result {
-                var count = currentData.getValue(Int::class.java) ?: 0
-                count++
-                currentData.value = count
-                return Transaction.success(currentData)
-            }
+        userReportedRef.child("count")
+            .runTransaction(object : Transaction.Handler {
+                override fun doTransaction(currentData: MutableData): Transaction.Result {
+                    var count = currentData.getValue(Int::class.java) ?: 0
+                    count++
+                    currentData.value = count
+                    return Transaction.success(currentData)
+                }
 
-            override fun onComplete(
-                error: DatabaseError?,
-                committed: Boolean,
-                currentData: DataSnapshot?
-            ) {
-                if (error != null) {
-                    // Failure
-                    println("Transaction failed.")
+                override fun onComplete(
+                    error: DatabaseError?,
+                    committed: Boolean,
+                    currentData: DataSnapshot?
+                ) {
+                    if (error != null) {
+                        // Failure
+                        println("Transaction failed.")
 
-                } else {
-                    // Success
-                    println("Transaction successful.")
-                    // Remove reported user from matches and chats
-                    CoroutineScope(Dispatchers.IO).launch {
-                        deleteMatches(database, reportedUserId)
-                        deleteChats(database, reportedUserId)
+                    } else {
+                        // Success
+                        println("Transaction successful.")
+                        // Remove reported user from matches and chats
+                        CoroutineScope(Dispatchers.IO).launch {
+                            deleteMatches(database, reportedUserId)
+                            deleteChats(database, reportedUserId)
+                        }
                     }
                 }
-            }
-        })
+            })
     }
 
     suspend fun blockUser(blockedUserId: String, blockingUserId: String) {
@@ -371,7 +562,8 @@ class FirebaseDataSource() {
         val databaseRef = database.getReference("users")
 
         // Update users blocked list
-        val userBlockedRef = databaseRef.child(blockingUserId).child("blocked").child(blockedUserId)
+        val userBlockedRef = databaseRef.child(blockingUserId).child("blocked")
+            .child(blockedUserId)
         userBlockedRef.setValue(true)
 
         // Remove blocked user from matches and chats
@@ -400,7 +592,8 @@ class FirebaseDataSource() {
                 val list = mutableListOf<MessageModel>()
                 for (data in snapshot.children) {
                     try {
-                        val messageModel = data.getValue(MessageModel::class.java)
+                        val messageModel =
+                            data.getValue(MessageModel::class.java)
                         messageModel?.let { list.add(it) }
                         Log.d("CHAT_TAG", "Succeeded parsing MessageModel")
                     } catch (e: Exception) {
@@ -428,8 +621,10 @@ class FirebaseDataSource() {
     suspend fun storeChatData(chatId: String?, message: String) {
         val senderId = FirebaseAuth.getInstance().currentUser?.phoneNumber
             ?: throw Exception("User not logged in")
-        val currentTime: String = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
-        val currentDate: String = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()).format(Date())
+        val currentTime: String =
+            SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
+        val currentDate: String =
+            SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()).format(Date())
 
         val map = hashMapOf<String, String>()
         map["message"] = message
@@ -437,7 +632,8 @@ class FirebaseDataSource() {
         map["currentTime"] = currentTime
         map["currentDate"] = currentDate
 
-        val reference = FirebaseDatabase.getInstance().getReference("chats").child(chatId!!)
+        val reference =
+            FirebaseDatabase.getInstance().getReference("chats").child(chatId!!)
 
         reference.child(reference.push().key!!).setValue(map)
         /*
@@ -505,13 +701,23 @@ class FirebaseDataSource() {
             deleteUserFromAuthentication()
 
             // Log success message
-            Log.d("DeleteUserAndData", "User $userId and associated data deleted successfully")
+            Log.d(
+                "DeleteUserAndData",
+                "User $userId and associated data deleted successfully"
+            )
         } catch (e: Exception) {
-            Log.e("DeleteUserAndData", "Error deleting user data: ${e.message}", e)
+            Log.e(
+                "DeleteUserAndData",
+                "Error deleting user data: ${e.message}",
+                e
+            )
         }
     }
 
-    private suspend fun removeLikeOrPassData(database: FirebaseDatabase, userId: String) {
+    private suspend fun removeLikeOrPassData(
+        database: FirebaseDatabase,
+        userId: String
+    ) {
         try {
             val likeOrPassRef = database.getReference("likeorpass")
             val likeOrPassSnapshot = likeOrPassRef.get().await()
@@ -530,13 +736,23 @@ class FirebaseDataSource() {
             // Delete the user's likeorpass data
             likeOrPassRef.child(userId).removeValue().await()
 
-            Log.d("RemoveLikeOrPassData", "Like or pass data removed successfully for user $userId")
+            Log.d(
+                "RemoveLikeOrPassData",
+                "Like or pass data removed successfully for user $userId"
+            )
         } catch (e: Exception) {
-            Log.e("RemoveLikeOrPassData", "Error removing like or pass data: ${e.message}", e)
+            Log.e(
+                "RemoveLikeOrPassData",
+                "Error removing like or pass data: ${e.message}",
+                e
+            )
         }
     }
 
-    private suspend fun deleteMatches(database: FirebaseDatabase, userId: String) {
+    private suspend fun deleteMatches(
+        database: FirebaseDatabase,
+        userId: String
+    ) {
         try {
             val matchesRef = database.getReference("matches")
             val matchesSnapshot = matchesRef.get().await()
@@ -548,15 +764,22 @@ class FirebaseDataSource() {
                 }
             }
 
-            Log.d("DeleteMatches", "Matches deleted successfully for user $userId")
+            Log.d(
+                "DeleteMatches",
+                "Matches deleted successfully for user $userId"
+            )
         } catch (e: Exception) {
             Log.e("DeleteMatches", "Error deleting matches: ${e.message}", e)
         }
     }
 
-    private suspend fun deleteChats(database: FirebaseDatabase, userId: String) {
+    private suspend fun deleteChats(
+        database: FirebaseDatabase,
+        userId: String
+    ) {
         val chatsRef = database.getReference("chats")
-        val userChatsQuery = chatsRef.orderByKey().startAt(userId).endAt(userId + "\uf8ff")
+        val userChatsQuery =
+            chatsRef.orderByKey().startAt(userId).endAt(userId + "\uf8ff")
         val userChatsSnapshot = userChatsQuery.get().await()
 
         userChatsSnapshot.children.forEach { chatSnapshot ->
@@ -613,8 +836,12 @@ class FirebaseDataSource() {
     /**
      * Functions related to user preferences
      */
-    suspend fun setUserInfo(number: String, location: String): Flow<UserModel?> = flow {
-        val databaseReference = FirebaseDatabase.getInstance().getReference("users").child(number)
+    suspend fun setUserInfo(
+        number: String,
+        location: String
+    ): Flow<UserModel?> = flow {
+        val databaseReference =
+            FirebaseDatabase.getInstance().getReference("users").child(number)
 
         val userDataMap = withContext(Dispatchers.IO) {
             suspendCoroutine { continuation ->
@@ -696,9 +923,10 @@ class FirebaseDataSource() {
             } ?: UserSearchPreferenceModel()
             hasCasual = userDataMap["hasCasual"] as? Boolean ?: false
             hasFriends = userDataMap["hasFriends"] as? Boolean ?: false
-            casualAdditions = (userDataMap["casualAdditions"] as? Map<*, *>)?.let { map ->
-                getCasualAdditions(map)
-            } ?: CasualAdditions()
+            casualAdditions =
+                (userDataMap["casualAdditions"] as? Map<*, *>)?.let { map ->
+                    getCasualAdditions(map)
+                } ?: CasualAdditions()
         }
     }
 
@@ -759,7 +987,8 @@ class FirebaseDataSource() {
 
 
     suspend fun setMatchedInfo(number: String): Flow<MatchedUserModel?> = flow {
-        val databaseReference = FirebaseDatabase.getInstance().getReference("users").child(number)
+        val databaseReference =
+            FirebaseDatabase.getInstance().getReference("users").child(number)
 
         val userDataMap = withContext(Dispatchers.IO) {
             suspendCoroutine { continuation ->
@@ -795,7 +1024,8 @@ class FirebaseDataSource() {
             user.star = userDataMap["star"] as? String ?: ""
             user.sexOrientation = userDataMap["sexOrientation"] as? String ?: ""
             user.sex = userDataMap["sex"] as? String ?: ""
-            user.testResultsMbti = userDataMap["testResultsMbti"] as? String ?: "Not Taken"
+            user.testResultsMbti =
+                userDataMap["testResultsMbti"] as? String ?: "Not Taken"
             user.children = userDataMap["children"] as? String ?: ""
             user.family = userDataMap["family"] as? String ?: ""
             user.education = userDataMap["education"] as? String ?: ""
