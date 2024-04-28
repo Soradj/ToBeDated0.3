@@ -26,20 +26,23 @@ import kotlinx.coroutines.withContext
 
 class DatingViewModel(private var repository: Repository) : ViewModel() {
     private lateinit var signedInUser: StateFlow<UserModel?>
+
     /**
      *
      * This is for matches
      */
     private var _likedProfile = mutableStateOf(NewMatch())
     private val likedProfile: State<NewMatch> = _likedProfile
-    val potentialUserData: StateFlow<Pair<List<MatchedUserModel>, Int>> = repository.getPotentialUserData()
-        .map { (userList, currentIndex) -> userList to currentIndex }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), Pair(emptyList(), 0))
+    val potentialUserData: StateFlow<Pair<List<MatchedUserModel>, Int>> =
+        repository.getPotentialUserData()
+            .map { (userList, currentIndex) -> userList to currentIndex }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), Pair(emptyList(), 0))
 
     fun getNextPotential(currentProfileIndex: Int): MatchedUserModel? {
         val potentialUsers = potentialUserData.value.first
         return potentialUsers.getOrNull(currentProfileIndex)
     }
+
     // TODO not 100% sure on this one--wrote it kinda fast
     fun likeCurrentProfile(currentUserId: String, currentProfile: MatchedUserModel): NewMatch {
         viewModelScope.launch(IO) {
@@ -81,14 +84,14 @@ class DatingViewModel(private var repository: Repository) : ViewModel() {
     private fun getMatchesFlow(userId: String) {
         viewModelScope.launch(IO) {
             repository.getMatchesFlow(userId).collect { matches ->
-                val convertedMatches = matches.mapNotNull {
-                        match ->
+                val convertedMatches = matches.mapNotNull { match ->
                     repository.getMatch(match)
                 }
                 _matchList.value = convertedMatches
             }
         }
     }
+
     fun getCurrentUserId(): String {
         return repository.getCurrentUserId()
     }
@@ -99,11 +102,13 @@ class DatingViewModel(private var repository: Repository) : ViewModel() {
      */
     private var _selectedUser = MutableStateFlow<MatchedUserModel?>(null)
     var selectedUser: StateFlow<MatchedUserModel?> = _selectedUser
+
     //Stuff for setting and getting matches
     fun getMatches(): List<Match> {
         getMatchesFlow(signedInUser.value!!.number)
         return matchList.value
     }
+
     fun setTalkedUser(number: String) {
         viewModelScope.launch(IO) {
             repository.setMatchInfo(number).collect { userInfo ->
@@ -111,12 +116,14 @@ class DatingViewModel(private var repository: Repository) : ViewModel() {
             }
         }
     }
+
     fun getTalkedUser(): MatchedUserModel {
         return selectedUser.value!!
     }
-        /**
-         *  generates a unique chatId made from the UIDs of the sender and receiver
-         */
+
+    /**
+     *  generates a unique chatId made from the UIDs of the sender and receiver
+     */
     fun getChatId(senderId: String, receiverId: String): String {
         return if (senderId > receiverId) {
             senderId + receiverId
@@ -152,6 +159,18 @@ class DatingViewModel(private var repository: Repository) : ViewModel() {
 //            }
 //        )
 //    }
+
+    fun reportUser(reportedUserId: String, reportingUserId: String) {
+        viewModelScope.launch(IO) {
+            repository.reportUser(reportedUserId, reportingUserId)
+        }
+    }
+
+    fun blockUser(blockedUserId: String, blockingUserId: String) {
+        viewModelScope.launch(IO) {
+            repository.blockUser(blockedUserId, blockingUserId)
+        }
+    }
 
     fun deleteUserAndData(userId: String) {
         viewModelScope.launch {

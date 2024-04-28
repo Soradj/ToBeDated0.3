@@ -8,6 +8,8 @@ import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.MutableData
+import com.google.firebase.database.Transaction
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.storage.FirebaseStorage
 import com.threegroup.tobedated.RealtimeDBMatch
@@ -167,13 +169,6 @@ class FirebaseDataSource() {
     Likes and match related functions
      */
 
-//    private suspend fun hasUserLikedBack(userId: String, likedUserId: String): Boolean {
-//        val likedRef =
-//            FirebaseDatabase.getInstance().getReference("users/$likedUserId/liked/$userId")
-//        val likedSnapshot = likedRef.get().await()
-//        return likedSnapshot.exists()
-//    }
-
     private suspend fun hasUserLikedBack(userId: String, likedUserId: String): Boolean {
         val likeOrPassRef = FirebaseDatabase.getInstance().getReference("likeorpass")
         val likedNodeRef = likeOrPassRef.child(likedUserId).child("liked")
@@ -189,46 +184,7 @@ class FirebaseDataSource() {
             "$userId2-$userId1"
         }
     }
-// TODO (old function that stores like and pass info inside User's path)
 
-//   suspend fun likeOrPass(userId: String, likedUserId: String, isLike: Boolean): RealtimeDBMatch? {
-//        val database = FirebaseDatabase.getInstance().getReference("users/$userId")
-//
-//        // Update user's liked or passed list
-//        if (isLike) {
-//            database.child("liked").push().setValue(likedUserId)
-//            // Mark the liked user as existing in the liked list
-//            database.child("liked/$likedUserId").setValue(true)
-//        } else {
-//            database.child("passed").push().setValue(likedUserId)
-//        }
-//        // Check if there's a match
-//        val hasUserLikedBack = hasUserLikedBack(userId, likedUserId)
-//        if (hasUserLikedBack) {
-//            val matchId = getMatchId(userId, likedUserId)
-//
-//            // Create a new match in the database
-//            val matchRef = FirebaseDatabase.getInstance().getReference("matches/$matchId")
-//            val matchData = RealtimeDBMatchProperties.toData(likedUserId, userId)
-//            matchRef.setValue(matchData)
-//            /**
-//             * //THIS IS MY ADDITION
-//             */
-//            val matchSet = matchRef.child(likedUserId)
-//            matchSet.setValue(setMatch(likedUserId))
-//            val userSet = matchRef.child(userId)
-//            userSet.setValue(setMatch(userId))
-//            /**
-//             * TO HERE I dunno if this is needed
-//             */
-//            // Retrieve the match data and return
-//            val matchSnapshot = matchRef.get().await()
-//            return matchSnapshot.getValue(RealtimeDBMatch::class.java)
-//        }
-//        return null
-//    }
-
-    // TODO (new function that creates a new path in database called "likeorpass" and stores like, pass, likedby, and passed by information)
     suspend fun likeOrPass(userId: String, likedUserId: String, isLike: Boolean): RealtimeDBMatch? {
         val database = FirebaseDatabase.getInstance()
 
@@ -291,7 +247,6 @@ class FirebaseDataSource() {
         )
     }
 
-
     suspend fun getMatchesFlow(userId: String): Flow<List<RealtimeDBMatch>> = callbackFlow {
         val ref = FirebaseDatabase.getInstance().getReference("matches")
         val listener = object : ValueEventListener {
@@ -326,9 +281,6 @@ class FirebaseDataSource() {
             query.removeEventListener(listener)
         }
     }
-    /**
-     * Function needed to convert birthday from String to Date
-     */
 
     /**
      * Function to get a single instance of a match
@@ -365,6 +317,53 @@ class FirebaseDataSource() {
 //        val userImage1 = userSnapshot.child("userPicture").getValue(String::class.java) ?: ""
 //
 
+    }
+
+    /**
+     * Functions related to blocking and reporting
+     */
+    suspend fun reportUser(reportedUserId: String, reportingUserId: String) {
+        val database = FirebaseDatabase.getInstance()
+        val reportsRef = database.getReference("reports")
+
+        // Update report list with reported user's number as the key
+        val userReportedRef = reportsRef.child(reportedUserId)
+
+        // Add the reporting user as a value for field "reported by"
+        userReportedRef.child("reportedby").push().setValue(reportingUserId)
+
+        // Increment the report count
+        userReportedRef.child("count").runTransaction(object : Transaction.Handler {
+            override fun doTransaction(currentData: MutableData): Transaction.Result {
+                var count = currentData.getValue(Int::class.java) ?: 0
+                count++
+                currentData.value = count
+                return Transaction.success(currentData)
+            }
+            override fun onComplete(
+                error: DatabaseError?,
+                committed: Boolean,
+                currentData: DataSnapshot?
+            ) {
+                if (error != null) {
+                    // Failure
+                    println("Transaction failed.")
+
+                } else {
+                    // Success
+                    println("Transaction successful.")
+                }
+            }
+        })
+    }
+
+    suspend fun blockUser(blockedUserId: String, blockingUserId: String){
+        // Get database reference to "users" path
+        val databaseRef = FirebaseDatabase.getInstance().getReference("users")
+
+        // Update users blocked list
+        val userBlockedRef = databaseRef.child(blockingUserId).child("blocked").child(blockedUserId)
+        userBlockedRef.setValue(true)
     }
 
     fun getCurrentUserId(): String {
@@ -465,18 +464,9 @@ class FirebaseDataSource() {
             })
     }
 
-//    fun deleteProfile(number: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
-//        val databaseReference = FirebaseDatabase.getInstance().getReference("users").child(number)
-//        databaseReference.removeValue()
-//            .addOnSuccessListener {
-//
-//                onSuccess()
-//            }
-//            .addOnFailureListener { e ->
-//                onFailure(e)
-//            }
-//    }
-
+    /**
+     *  Functions related to deleting user data
+     */
     suspend fun deleteUserAndData(userId: String) {
         try {
             val database = FirebaseDatabase.getInstance()
@@ -607,7 +597,9 @@ class FirebaseDataSource() {
         }
     }
 
-
+    /**
+     * Functions related to user preferences
+     */
     suspend fun setUserInfo(number: String, location: String): Flow<UserModel?> = flow {
         val databaseReference = FirebaseDatabase.getInstance().getReference("users").child(number)
 
