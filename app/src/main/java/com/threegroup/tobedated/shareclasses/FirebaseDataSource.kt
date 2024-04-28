@@ -21,11 +21,13 @@ import com.threegroup.tobedated.shareclasses.models.MatchedUserModel
 import com.threegroup.tobedated.shareclasses.models.MessageModel
 import com.threegroup.tobedated.shareclasses.models.UserModel
 import com.threegroup.tobedated.shareclasses.models.UserSearchPreferenceModel
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
@@ -340,6 +342,7 @@ class FirebaseDataSource() {
                 currentData.value = count
                 return Transaction.success(currentData)
             }
+
             override fun onComplete(
                 error: DatabaseError?,
                 committed: Boolean,
@@ -352,18 +355,28 @@ class FirebaseDataSource() {
                 } else {
                     // Success
                     println("Transaction successful.")
+                    // Remove reported user from matches and chats
+                    CoroutineScope(Dispatchers.IO).launch {
+                        deleteMatches(database, reportedUserId)
+                        deleteChats(database, reportedUserId)
+                    }
                 }
             }
         })
     }
 
-    suspend fun blockUser(blockedUserId: String, blockingUserId: String){
+    suspend fun blockUser(blockedUserId: String, blockingUserId: String) {
         // Get database reference to "users" path
-        val databaseRef = FirebaseDatabase.getInstance().getReference("users")
+        val database = FirebaseDatabase.getInstance()
+        val databaseRef = database.getReference("users")
 
         // Update users blocked list
         val userBlockedRef = databaseRef.child(blockingUserId).child("blocked").child(blockedUserId)
         userBlockedRef.setValue(true)
+
+        // Remove blocked user from matches and chats
+        deleteMatches(database, blockedUserId)
+        deleteChats(database, blockedUserId)
     }
 
     fun getCurrentUserId(): String {
