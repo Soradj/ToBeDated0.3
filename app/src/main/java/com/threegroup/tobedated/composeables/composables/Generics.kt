@@ -763,7 +763,7 @@ fun NavDraw(
             GenericTitleText(text = "Causal", style = AppTheme.typography.titleLarge)
         }
         val vmApi = viewModel { ApiViewModel(MyApp.x) }
-        vmApi.fetchWordOfTheDay()
+        //vmApi.fetchWordOfTheDay() //TODO FIX WORD OF THE DAY
         vmApi.fetchHoroscope(star)
         var description by remember { mutableStateOf("") }
         var luckyTime by remember { mutableStateOf("") }
@@ -782,7 +782,7 @@ fun NavDraw(
                 HorizontalDivider(modifier = Modifier.fillMaxWidth())
                 Spacer(modifier = Modifier.height(6.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                    GenericTitleText(text = vmApi.getWord(), style = AppTheme.typography.titleLarge)
+                    GenericTitleText(text = "vmApi.getWord()", style = AppTheme.typography.titleLarge)
                 }
                 Spacer(modifier = Modifier.height(3.dp))
                 Row(modifier = Modifier.fillMaxWidth(),

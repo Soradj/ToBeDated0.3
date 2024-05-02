@@ -73,20 +73,23 @@ class FirebaseDataSource {
                 val list = mutableListOf<MatchedUserModel>()
                 likePassNodeRef.addListenerForSingleValueEvent(object : ValueEventListener {
                     override fun onDataChange(likePassSnapshot: DataSnapshot) {
-                        val query = dbRef.orderByChild("status").limitToLast(10) // Adjust the limit as needed
+                        val query = dbRef.orderByChild("status")
+                            .limitToLast(10) // Adjust the limit as needed
                         query.addListenerForSingleValueEvent(object : ValueEventListener {
                             override fun onDataChange(usersSnapshot: DataSnapshot) {
                                 usersSnapshot.children.forEach { userSnapshot ->
                                     try {
-                                        val potential = userSnapshot.getValue(MatchedUserModel::class.java)
+                                        val potential =
+                                            userSnapshot.getValue(MatchedUserModel::class.java)
                                         potential?.let {
-                                            if (it.number != FirebaseAuth.getInstance().currentUser?.phoneNumber &&
-                                                passBlocked(dbRef, user.number, it.number) &&
-                                                passSeeMe(it, likePassSnapshot) &&
-                                                isProfileInteractedByUser(it.number, likePassSnapshot) &&
-                                                passBasicPreferences(user, it) &&
-                                                !passMatch(it) &&
-                                                passPremiumPref(user, it)) {
+                                            if (it.number != FirebaseAuth.getInstance().currentUser?.phoneNumber
+                                                && passBlocked(dbRef, user.number, it.number)
+                                                && passSeeMe(it, likePassSnapshot)
+                                               && isProfileInteractedByUser(it.number, likePassSnapshot)
+                                                && passBasicPreferences(user, it)
+                                               && !passMatch(it)
+                                                && passPremiumPref(user, it)
+                                            ) {
                                                 list.add(it)
                                             }
                                         }
@@ -98,11 +101,13 @@ class FirebaseDataSource {
                                 val sortedList = list.sortedByDescending { it.status }
                                 trySend(Pair(sortedList, 0)).isSuccess
                             }
+
                             override fun onCancelled(error: DatabaseError) {
                                 Log.d("USER_TAG", "Database error: ${error.message}")
                             }
                         })
                     }
+
                     override fun onCancelled(error: DatabaseError) {
                         Log.d("USER_TAG", "Database error: ${error.message}")
                     }
@@ -120,7 +125,11 @@ class FirebaseDataSource {
     }
 
 
-    private fun passBlocked(dbReference: DatabaseReference, userId: String, potentialUser: String): Boolean {
+    private fun passBlocked(
+        dbReference: DatabaseReference,
+        userId: String,
+        potentialUser: String
+    ): Boolean {
         //val block = dbReference.child(userId).child("blocked").child(potentialUser)
 
         //val exists = true
@@ -147,22 +156,51 @@ class FirebaseDataSource {
         return !(likedSnapshot.exists() || passedSnapshot.exists())
     }
 
-        /**
-         * This function checks basic preferences, sex, age, distance
-         */
+    /**
+     * This function checks basic preferences, sex, age, distance
+     */
     private fun passBasicPreferences(user: UserModel, potentialUser: MatchedUserModel): Boolean {
+        //TODO this is a temporary fix for the location error issue
+        if (user.location == "error/"){
+            user.location = "37.4220936/-122.083922"
+        }
+
+        println("User is ${user.name}")
+        println("Potential is ${potentialUser.name}")
         val userPref = user.userPref
         val userAge = calcAge(potentialUser.birthday)
 
+        println("User Age: $userAge")
+
         val isAgeInRange = userAge in userPref.ageRange.min..userPref.ageRange.max
-        val isLocationWithinDistance = calcDistance(potentialUser.location, user.location).toInt() <= userPref.maxDistance
-        val isSexMatch = user.seeking == "Everyone" || potentialUser.sex == user.seeking
+        println("Is Age range?: $isAgeInRange")
+
+        val isSexMatch = (user.seeking == "Everyone") || (potentialUser.sex == user.seeking)
+        println("User is seeking: ${user.seeking}")
+        println("Potential is: ${potentialUser.sex}")
+        println("Is sex match true?: $isSexMatch")
+
+        val potentialLocation = potentialUser.location
+        val userLocation = user.location
+        val maxDistance = userPref.maxDistance
+        println("Potential user location: $potentialLocation")
+        println("User location: $userLocation")
+        println("User max dist: $maxDistance")
+
+        val distance = calcDistance(potentialLocation, userLocation).toInt()
+        println("Distance between potential user and current user: $distance")
+
+        val isLocationWithinDistance = distance <= maxDistance
+        println("Is within distance?: $isLocationWithinDistance")
+
+        println("Is user in search preferences?: ${isAgeInRange && isLocationWithinDistance && isSexMatch} \n")
+
         return isAgeInRange && isLocationWithinDistance && isSexMatch
     }
 
-        /**
-         * This checks the "premium" features
-         */
+    /**
+     * This checks the "premium" features
+     */
     private fun passPremiumPref(user: UserModel, potentialUser: MatchedUserModel): Boolean {
         val userPref: UserSearchPreferenceModel = user.userPref
         val preferences = listOf(
@@ -368,12 +406,16 @@ class FirebaseDataSource {
         // Remove blocked user from matches and chats
         deleteMatch(blockedUserId, blockingUserId)
     }
-    fun suggest(currentPotential:String, suggestion:String){
-        val database = FirebaseDatabase.getInstance().getReference("users").child(currentPotential).child("suggestion")
+
+    fun suggest(currentPotential: String, suggestion: String) {
+        val database = FirebaseDatabase.getInstance().getReference("users").child(currentPotential)
+            .child("suggestion")
         database.setValue(suggestion)
     }
+
     fun getSuggestions(currentUser: String, onComplete: (List<String>) -> Unit) {
-        val database = FirebaseDatabase.getInstance().getReference("users").child(currentUser).child("suggestion")
+        val database = FirebaseDatabase.getInstance().getReference("users").child(currentUser)
+            .child("suggestion")
 
         val valueEventListener = object : ValueEventListener {
             override fun onDataChange(dataSnapshot: DataSnapshot) {
@@ -644,10 +686,11 @@ class FirebaseDataSource {
             emit(user)
         }
     }
+
     /**
      * API calls
      */
-    suspend fun getWord(): JSONObject?{
+    suspend fun getWord(): JSONObject? {
         val apiKey = "rd8wadogjxvq8mtpbsngll4mv6eokvk29vlx6rnlzkgof0475"
         return withContext(Dispatchers.IO) {
             val url = "https://api.wordnik.com/v4/words.json/wordOfTheDay?api_key=$apiKey"
@@ -658,10 +701,12 @@ class FirebaseDataSource {
             responseBody?.let { JSONObject(it) }
         }
     }
+
     suspend fun getHoroscope(sign: String): JSONObject? {
         return try {
             withContext(Dispatchers.IO) {
-                val url = "https://horoscope-app-api.vercel.app/api/v1/get-horoscope/daily?sign=$sign&day=TODAY"
+                val url =
+                    "https://horoscope-app-api.vercel.app/api/v1/get-horoscope/daily?sign=$sign&day=TODAY"
 
                 // Increase timeout values to handle potential timeouts
                 val client = OkHttpClient.Builder()
@@ -680,6 +725,7 @@ class FirebaseDataSource {
             null // Return null in case of failure
         }
     }
+
     suspend fun getPoem(): JSONArray? {
         return withContext(Dispatchers.IO) {
             val url = "https://poetrydb.org/random"
@@ -690,6 +736,7 @@ class FirebaseDataSource {
             responseBody?.let { JSONArray(it) }
         }
     }
+
     /**
      * SomeScreen Calls
      */
@@ -711,6 +758,7 @@ class FirebaseDataSource {
 
         likePassNodeRef.addListenerForSingleValueEvent(valueEventListener)
     }
+
     fun getPasses(userId: String, onComplete: (Int) -> Unit) {
         val db = FirebaseDatabase.getInstance()
         val likePassNodeRef = db.getReference("likeorpass").child(userId).child("passed")
@@ -729,6 +777,7 @@ class FirebaseDataSource {
 
         likePassNodeRef.addListenerForSingleValueEvent(valueEventListener)
     }
+
     fun getLikedAndPassedby(userId: String, onComplete: (Int) -> Unit) {
         val db = FirebaseDatabase.getInstance()
         val likeNodeRef = db.getReference("likeorpass").child(userId).child("likedby")
@@ -745,7 +794,7 @@ class FirebaseDataSource {
 
             override fun onCancelled(error: DatabaseError) {
                 // Handle error
-                calculateTotal(0,0, onComplete)
+                calculateTotal(0, 0, onComplete)
             }
         }
 
@@ -757,14 +806,15 @@ class FirebaseDataSource {
 
             override fun onCancelled(error: DatabaseError) {
                 // Handle error
-                calculateTotal(0,0, onComplete)
+                calculateTotal(0, 0, onComplete)
             }
         }
 
         likeNodeRef.addListenerForSingleValueEvent(likedListener)
         passNodeRef.addListenerForSingleValueEvent(passedListener)
     }
-    fun calculateTotal(likedCount:Int, passedCount:Int, onComplete: (Int) -> Unit) {
+
+    fun calculateTotal(likedCount: Int, passedCount: Int, onComplete: (Int) -> Unit) {
         val total = likedCount + passedCount
         onComplete(total)
     }
