@@ -20,6 +20,7 @@ import com.threegroup.tobedated._friends.FriendsActivity
 import com.threegroup.tobedated._login.LoginActivity
 import com.threegroup.tobedated.composeables.composables.PolkaDotCanvas
 import com.threegroup.tobedated.composeables.composables.SplashScreen
+import com.threegroup.tobedated.shareclasses.makeProfiles
 import com.threegroup.tobedated.theme.AppTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -30,6 +31,7 @@ class MainActivity : ComponentActivity() {
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
+
         super.onCreate(savedInstanceState)
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
         val sharedPreferences = getSharedPreferences("user_data", Context.MODE_PRIVATE)
@@ -57,9 +59,9 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-
+        makeProfiles(this, contentResolver)
         // Request location permission if not granted
-        requestLocationPermission()
+        //requestLocationPermission()
     }
     private val requestLocationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
