@@ -50,6 +50,13 @@ fun generateRandomFirstName(): String {
         "Olivia", "Peter", "Quinn", "Rachel", "Sam", "Taylor", "Uma", "Victor", "Wendy", "Xavier", "Yara", "Zoe", "Alice", "Bob",
         "Charlie", "David", "Emma", "Frank", "Grace", "Henry", "Ivy", "Jack", "Kate", "Liam", "Mia", "Nathan", "Olivia", "Peter",
         "Quinn", "Rachel", "Sam", "Taylor", "Uma", "Victor", "Wendy", "Xavier",
+        // New names added below
+        "Zara", "Aaron", "Bella", "Connor", "Daisy", "Elijah", "Faith", "Gavin", "Hannah", "Isaac",
+        "Jessica", "Kai", "Layla", "Matthew", "Natalie", "Oscar", "Paige", "Quentin", "Rebecca", "Seth",
+        "Tara", "Uriel", "Violet", "William", "Xena", "Yasmine", "Zachary", "Ava", "Benjamin", "Chloe",
+        "Daniel", "Emily", "Finn", "Grace", "Hugo", "Isla", "Jayden", "Kylie", "Liam", "Mila",
+        "Noah", "Olivia", "Peyton", "Quinn", "Ryan", "Samantha", "Theo", "Ursula", "Victoria", "Wyatt",
+        "Xander", "Yara", "Zoe"
     )
     return firstNames.random()
 }
@@ -164,7 +171,7 @@ suspend fun generateRandomUserData(number:String, context: Context, contentResol
         image2 = photoUrl,
         image3 = photoUrl,
         image4 = photoUrl,
-        location = "${37.4220936+ Random.nextInt(-5, 5)}/${-122.083922 + Random.nextInt(-5, 5)}",
+        location = "${(40.7528570 + Random.nextDouble(-1.000, 1.000))}/${-73.4265742 + Random.nextDouble(-1.000, 1.000)}",//37.4220936/-122.083922
         status = System.currentTimeMillis(),
         number = number,//to gen random numbers
         verified = false,
@@ -178,11 +185,11 @@ suspend fun generateRandomUserData(number:String, context: Context, contentResol
 }
 
 fun makeProfiles(context:Context, contentResolver: ContentResolver) {
-    val numberOfUsers = 30 // Change this to the number of users you want to generate
+    val numberOfUsers = 25 // Change this to the number of users you want to generate
     val database = Firebase.database
     val reference = database.getReference("users")
 
-    var number = 146
+    var number = 150
 
     runBlocking {
         repeat(numberOfUsers) {
