@@ -52,12 +52,14 @@ import com.threegroup.tobedated.generic.sexOrientationOptions
 import com.threegroup.tobedated.generic.smokeOptions
 import com.threegroup.tobedated.generic.starOptions
 import com.threegroup.tobedated.generic.weedOptions
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 import java.io.InputStream
 import kotlin.random.Random
 
@@ -72,23 +74,24 @@ fun makeProfiles(context:Context, numberOfUsers:Int, startNumber: Int) {
     var number = 100 + startNumber
 
     runBlocking {
-        repeat(numberOfUsers) {
-            launch {
-                val phoneNumber = "+16505558$number"
-                val user = generateRandomUserData(phoneNumber, context)
-                println(user)
-                reference.child(phoneNumber).setValue(user)
-                    .addOnSuccessListener {
-                        println("User added successfully")
-
-                    }
-                    .addOnFailureListener { e ->
-                        println("Failed to add user: $user, error: $e")
-                    }
-                number++
+        withContext(Dispatchers.IO) {
+            repeat(numberOfUsers) {
+                launch {
+                    val phoneNumber = "+16505558$number"
+                    val user = generateRandomUserData(phoneNumber, context)
+                    Log.d("user","$user")
+                    reference.child(phoneNumber).setValue(user)
+                        .addOnSuccessListener {
+                            Log.d("UserCreations","User$number added successfully")
+                        }
+                        .addOnFailureListener { e ->
+                            Log.d("UserCreations","Failed to add user: $user, error: $e")
+                        }
+                    number++
+                }
+                // Introduce a delay to ensure each user is added sequentially
+                delay(1000) // Adjust the delay time as needed
             }
-            // Introduce a delay to ensure each user is added sequentially
-            delay(1000) // Adjust the delay time as needed
         }
     }
 }
