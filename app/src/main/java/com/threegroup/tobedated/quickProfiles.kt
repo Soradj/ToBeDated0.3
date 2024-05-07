@@ -1,4 +1,4 @@
-package com.threegroup.tobedated.shareclasses
+package com.threegroup.tobedated
 
 import android.content.ContentResolver
 import android.content.Context
@@ -8,44 +8,6 @@ import com.google.firebase.Firebase
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.database
 import com.google.firebase.storage.FirebaseStorage
-import com.threegroup.tobedated.R
-import com.threegroup.tobedated.shareclasses.models.CasualAdditions
-import com.threegroup.tobedated.shareclasses.models.UserModel
-import com.threegroup.tobedated.shareclasses.models.UserSearchPreferenceModel
-import com.threegroup.tobedated.shareclasses.models.afterCareOptions
-import com.threegroup.tobedated.shareclasses.models.childrenOptions
-import com.threegroup.tobedated.shareclasses.models.commOptions
-import com.threegroup.tobedated.shareclasses.models.curiositiesANDImaginations
-import com.threegroup.tobedated.shareclasses.models.drinkOptions
-import com.threegroup.tobedated.shareclasses.models.educationOptions
-import com.threegroup.tobedated.shareclasses.models.ethnicityOptions
-import com.threegroup.tobedated.shareclasses.models.expectationsANDCommunication
-import com.threegroup.tobedated.shareclasses.models.experienceOptions
-import com.threegroup.tobedated.shareclasses.models.familyOptions
-import com.threegroup.tobedated.shareclasses.models.genderOptions
-import com.threegroup.tobedated.shareclasses.models.insightsANDReflections
-import com.threegroup.tobedated.shareclasses.models.intentionsOptions
-import com.threegroup.tobedated.shareclasses.models.leaningOptions
-import com.threegroup.tobedated.shareclasses.models.limitsANDBoundaries
-import com.threegroup.tobedated.shareclasses.models.locationOptions
-import com.threegroup.tobedated.shareclasses.models.lookingForOptions
-import com.threegroup.tobedated.shareclasses.models.mbtiList
-import com.threegroup.tobedated.shareclasses.models.meetUpOptions
-import com.threegroup.tobedated.shareclasses.models.passionsANDInterests
-import com.threegroup.tobedated.shareclasses.models.politicsOptions
-import com.threegroup.tobedated.shareclasses.models.preferencesAndDesires
-import com.threegroup.tobedated.shareclasses.models.pronounOptions
-import com.threegroup.tobedated.shareclasses.models.relationshipOptions
-import com.threegroup.tobedated.shareclasses.models.religionOptions
-import com.threegroup.tobedated.shareclasses.models.seekingOptions
-import com.threegroup.tobedated.shareclasses.models.sexHealthOptions
-import com.threegroup.tobedated.shareclasses.models.sexOptions
-import com.threegroup.tobedated.shareclasses.models.sexOrientationOptions
-import com.threegroup.tobedated.shareclasses.models.smokeOptions
-import com.threegroup.tobedated.shareclasses.models.starOptions
-import com.threegroup.tobedated.shareclasses.models.tabs
-import com.threegroup.tobedated.shareclasses.models.tabsCasual
-import com.threegroup.tobedated.shareclasses.models.weedOptions
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
@@ -56,65 +18,37 @@ import java.io.InputStream
 import kotlin.random.Random
 
 // Function to generate a random first name
-fun generateRandomFirstName(): String {
-    val firstNames = listOf(
-        "Alice", "Bob", "Charlie", "David", "Emma", "Frank", "Grace", "Henry", "Ivy", "Jack", "Kate", "Liam", "Mia", "Nathan",
-        "Olivia", "Peter", "Quinn", "Rachel", "Sam", "Taylor", "Uma", "Victor", "Wendy", "Xavier", "Yara", "Zoe", "Alice", "Bob",
-        "Charlie", "David", "Emma", "Frank", "Grace", "Henry", "Ivy", "Jack", "Kate", "Liam", "Mia", "Nathan", "Olivia", "Peter",
-        "Quinn", "Rachel", "Sam", "Taylor", "Uma", "Victor", "Wendy", "Xavier",
-        "Zara", "Aaron", "Bella", "Connor", "Daisy", "Elijah", "Faith", "Gavin", "Hannah", "Isaac",
-        "Jessica", "Kai", "Layla", "Matthew", "Natalie", "Oscar", "Paige", "Quentin", "Rebecca", "Seth",
-        "Tara", "Uriel", "Violet", "William", "Xena", "Yasmine", "Zachary", "Ava", "Benjamin", "Chloe",
-        "Daniel", "Emily", "Finn", "Grace", "Hugo", "Isla", "Jayden", "Kylie", "Liam", "Mila",
-        "Noah", "Olivia", "Peyton", "Quinn", "Ryan", "Samantha", "Theo", "Ursula", "Victoria", "Wyatt",
-        "Xander", "Yara", "Zoe",
-        "Amelia", "Brody", "Cara", "Dylan", "Eva", "Gabriel", "Hazel", "Ian", "Jasmine", "Kevin",
-        "Luna", "Michael", "Nora", "Owen", "Penelope", "Riley", "Sophia", "Tristan", "Vivian", "Wesley",
-        "Ximena", "Yasmine", "Zander"
-        // New names added below
-    )
-    return firstNames.random()
-}
-fun getDrawableResource(ethnicity: String, gender: String): Int {
-    val resourceId = when {
-        ethnicity == "Black/African Descent" && gender == "Male" -> R.drawable._blackmale
-        ethnicity == "Black/African Descent" && gender == "Female" -> R.drawable._blackfemale
-        ethnicity == "Black/African Descent" &&  gender == "Other" -> if(Random.nextBoolean()){R.drawable._blackmale}else{R.drawable._blackfemale}
-        ethnicity == "East Asian" && gender == "Male" -> R.drawable._eastmale
-        ethnicity == "East Asian" && gender == "Female" -> R.drawable._eastfemale
-        ethnicity == "East Asian" && gender == "Other" -> if(Random.nextBoolean()){R.drawable._eastmale}else{R.drawable._eastfemale}
-        ethnicity == "Hispanic/Latino" && gender == "Male" -> R.drawable._hispanicmale
-        ethnicity == "Hispanic/Latino" && gender == "Female" -> R.drawable._hispanicfemale
-        ethnicity == "Hispanic/Latino" && gender == "Other" -> if(Random.nextBoolean()){R.drawable._hispanicmale}else{R.drawable._hispanicfemale}
-        ethnicity == "Middle Eastern" && gender == "Male" -> R.drawable._middlemale
-        ethnicity == "Middle Eastern" && gender == "Female" -> R.drawable._middlefemale
-        ethnicity == "Middle Eastern" && gender == "Other" -> if(Random.nextBoolean()){R.drawable._middlemale}else{R.drawable._middlefemale}
-        ethnicity == "Native American" && gender == "Male" -> R.drawable._nativemale
-        ethnicity == "Native American" && gender == "Female" -> R.drawable._nativefemale
-        ethnicity == "Native American" && gender == "Other" -> if(Random.nextBoolean()){R.drawable._nativemale}else{R.drawable._nativefemale}
-        ethnicity == "Pacific Islander" && gender == "Male" -> R.drawable._pacificmale
-        ethnicity == "Pacific Islander" && gender == "Female" -> R.drawable._pacificfemale
-        ethnicity == "Pacific Islander" && gender == "Other" -> if(Random.nextBoolean()){R.drawable._pacificmale}else{R.drawable._pacificfemale}
-        ethnicity == "South Asian" && gender == "Male" -> R.drawable._southmale
-        ethnicity == "South Asian" && gender == "Female" -> R.drawable._southfemale
-        ethnicity == "South Asian" && gender == "Other" -> if(Random.nextBoolean()){R.drawable._southmale}else{R.drawable._southfemale}
-        ethnicity == "Southeast Asian" && gender == "Male" -> R.drawable._southeastmale
-        ethnicity == "Southeast Asian" && gender == "Female" -> R.drawable._southeastfemale
-        ethnicity == "Southeast Asian" && gender == "Other" -> if(Random.nextBoolean()){R.drawable._southeastmale}else{R.drawable._southeastfemale}
-        ethnicity == "White/Caucasian" && gender == "Male" -> R.drawable._whitemale
-        ethnicity == "White/Caucasian" && gender == "Female" -> R.drawable._whitefemale
-        ethnicity == "White/Caucasian" && gender == "Other" -> if(Random.nextBoolean()){R.drawable._whitemale}else{R.drawable._whitefemale}
-        else -> R.drawable._hispanicfemale // Default resource ID
+
+
+fun makeProfiles(context:Context, numberOfUsers:Int, startNumber: Int) {
+    //val numberOfUsers = 6 // Change this to the number of users you want to generate
+    val database = Firebase.database
+    val reference = database.getReference("users")
+
+    var number = 100 + startNumber
+
+    runBlocking {
+        repeat(numberOfUsers) {
+            launch {
+                val phoneNumber = "+16505558$number"
+                val user = generateRandomUserData(phoneNumber, context)
+                println(user)
+                reference.child(phoneNumber).setValue(user)
+                    .addOnSuccessListener {
+                        println("User added successfully")
+
+                    }
+                    .addOnFailureListener { e ->
+                        println("Failed to add user: $user, error: $e")
+                    }
+                number++
+            }
+            // Introduce a delay to ensure each user is added sequentially
+            delay(1000) // Adjust the delay time as needed
+        }
     }
-    Log.d("getDrawableResource", "Resource ID: $resourceId")
-    return resourceId
 }
-fun getResourceUri(context: Context, resourceId: Int): String {
-    val uriString = "android.resource://${context.packageName}/$resourceId"
-    Log.d("getResourceUri", "URI: $uriString")
-    return uriString
-}
-suspend fun generateRandomUserData(number:String, context: Context, contentResolver:ContentResolver): UserModel {
+suspend fun generateRandomUserData(number:String, context: Context): UserModel {
     val hasCas = Random.nextBoolean()
     val prompt1 = Random.nextInt(1, 10)
     val prompt2= Random.nextInt(1, 10)
@@ -138,11 +72,11 @@ suspend fun generateRandomUserData(number:String, context: Context, contentResol
         async {
             val photoResourceId = getDrawableResource(ethnicity, sex)
             val photoUri = getResourceUri(context, photoResourceId)
-            storeImageAttemptQUICK(photoUri, contentResolver, 1, number)
+            storeImageAttemptQUICK(photoUri, context.contentResolver, 1, number)
         }
     }.await()
     val userModel = UserModel(
-        name = generateRandomFirstName(), // Generate a random first name
+        name = firstNames.random(), // Generate a random first name
         birthday = "0${Random.nextInt(1, 8)}/0${Random.nextInt(1, 9)}/${1970 + (Random.nextInt(1, 31))}", // Example birthday, you can generate random birthdays as well
         pronoun = pronounOptions.random(),
         gender = genderOptions.random(),
@@ -152,8 +86,8 @@ suspend fun generateRandomUserData(number:String, context: Context, contentResol
         sexOrientation = sexOrientationOptions.random(),
         seeking = seekingOptions.random(),
         sex = sex,
-        testResultsMbti = mbtiList.random(),
-        testResultTbd = Random.nextInt(1, 11),
+        testResultsMbti = mbtiOption.random(),
+        testResultTbd = Random.nextInt(1, 60),
         children = childrenOptions.random(),
         family = familyOptions.random(),
         education = educationOptions.random(),
@@ -231,7 +165,8 @@ suspend fun generateRandomUserData(number:String, context: Context, contentResol
                 sexHealthOptions.random()},
             afterCare=if(hasCas){""}else{
                 afterCareOptions.random()},
-            casualBio=if(hasCas){""}else{casualAppBios.random()},
+            casualBio=if(hasCas){""}else{
+                casualAppBios.random()},
             promptQ1=if(hasCas){""}else{when (tab2c) {
                 "Preferences and Desires" -> preferencesAndDesires[prompt2]
                 "Limits and Boundaries" -> limitsANDBoundaries[prompt2]
@@ -272,35 +207,46 @@ suspend fun generateRandomUserData(number:String, context: Context, contentResol
     )
     return userModel
 }
-
-fun makeProfiles(context:Context, contentResolver: ContentResolver) {
-    val numberOfUsers = 6 // Change this to the number of users you want to generate
-    val database = Firebase.database
-    val reference = database.getReference("users")
-
-    var number = 174
-
-    runBlocking {
-        repeat(numberOfUsers) {
-            launch {
-                val phoneNumber = "+16505558$number"
-                val user = generateRandomUserData(phoneNumber, context, contentResolver)
-                println(user)
-                reference.child(phoneNumber).setValue(user)
-                    .addOnSuccessListener {
-                        println("User added successfully")
-
-                    }
-                    .addOnFailureListener { e ->
-                        println("Failed to add user: $user, error: $e")
-                    }
-                number++
-            }
-            // Introduce a delay to ensure each user is added sequentially
-            delay(1000) // Adjust the delay time as needed
-        }
+fun getDrawableResource(ethnicity: String, gender: String): Int {
+    val resourceId = when {
+        ethnicity == "Black/African Descent" && gender == "Male" -> R.drawable._blackmale
+        ethnicity == "Black/African Descent" && gender == "Female" -> R.drawable._blackfemale
+        ethnicity == "Black/African Descent" &&  gender == "Other" -> if(Random.nextBoolean()){R.drawable._blackmale}else{R.drawable._blackfemale}
+        ethnicity == "East Asian" && gender == "Male" -> R.drawable._eastmale
+        ethnicity == "East Asian" && gender == "Female" -> R.drawable._eastfemale
+        ethnicity == "East Asian" && gender == "Other" -> if(Random.nextBoolean()){R.drawable._eastmale}else{R.drawable._eastfemale}
+        ethnicity == "Hispanic/Latino" && gender == "Male" -> R.drawable._hispanicmale
+        ethnicity == "Hispanic/Latino" && gender == "Female" -> R.drawable._hispanicfemale
+        ethnicity == "Hispanic/Latino" && gender == "Other" -> if(Random.nextBoolean()){R.drawable._hispanicmale}else{R.drawable._hispanicfemale}
+        ethnicity == "Middle Eastern" && gender == "Male" -> R.drawable._middlemale
+        ethnicity == "Middle Eastern" && gender == "Female" -> R.drawable._middlefemale
+        ethnicity == "Middle Eastern" && gender == "Other" -> if(Random.nextBoolean()){R.drawable._middlemale}else{R.drawable._middlefemale}
+        ethnicity == "Native American" && gender == "Male" -> R.drawable._nativemale
+        ethnicity == "Native American" && gender == "Female" -> R.drawable._nativefemale
+        ethnicity == "Native American" && gender == "Other" -> if(Random.nextBoolean()){R.drawable._nativemale}else{R.drawable._nativefemale}
+        ethnicity == "Pacific Islander" && gender == "Male" -> R.drawable._pacificmale
+        ethnicity == "Pacific Islander" && gender == "Female" -> R.drawable._pacificfemale
+        ethnicity == "Pacific Islander" && gender == "Other" -> if(Random.nextBoolean()){R.drawable._pacificmale}else{R.drawable._pacificfemale}
+        ethnicity == "South Asian" && gender == "Male" -> R.drawable._southmale
+        ethnicity == "South Asian" && gender == "Female" -> R.drawable._southfemale
+        ethnicity == "South Asian" && gender == "Other" -> if(Random.nextBoolean()){R.drawable._southmale}else{R.drawable._southfemale}
+        ethnicity == "Southeast Asian" && gender == "Male" -> R.drawable._southeastmale
+        ethnicity == "Southeast Asian" && gender == "Female" -> R.drawable._southeastfemale
+        ethnicity == "Southeast Asian" && gender == "Other" -> if(Random.nextBoolean()){R.drawable._southeastmale}else{R.drawable._southeastfemale}
+        ethnicity == "White/Caucasian" && gender == "Male" -> R.drawable._whitemale
+        ethnicity == "White/Caucasian" && gender == "Female" -> R.drawable._whitefemale
+        ethnicity == "White/Caucasian" && gender == "Other" -> if(Random.nextBoolean()){R.drawable._whitemale}else{R.drawable._whitefemale}
+        else -> R.drawable._hispanicfemale // Default resource ID
     }
+    Log.d("getDrawableResource", "Resource ID: $resourceId")
+    return resourceId
 }
+fun getResourceUri(context: Context, resourceId: Int): String {
+    val uriString = "android.resource://${context.packageName}/$resourceId"
+    Log.d("getResourceUri", "URI: $uriString")
+    return uriString
+}
+
 
 suspend fun storeImageAttemptQUICK(uriString: String, contentResolver: ContentResolver, imageNumber: Int, userNumber: String): String {
     var downloadUrl = ""
@@ -490,4 +436,20 @@ val expectationsANDCommunicationAnswers = listOf(
     "Yes, I am open to discussing boundaries and expectations regarding the nature of the sexual encounter. It's important to establish clear boundaries and expectations to ensure that both partners feel comfortable and respected.",
     "I believe in openly addressing any mismatches in sexual desires or expectations with my partner. By discussing our needs and desires openly and honestly, we can work together to find a solution that is satisfying for both of us.",
     "Mutual respect and consideration for my partner's feelings and boundaries are top priorities for me during a sexual encounter. I believe in creating a safe and comfortable environment where both partners feel valued and respected.",
+)
+val firstNames = listOf(
+    "Alice", "Bob", "Charlie", "David", "Emma", "Frank", "Grace", "Henry", "Ivy", "Jack", "Kate", "Liam", "Mia", "Nathan",
+    "Olivia", "Peter", "Quinn", "Rachel", "Sam", "Taylor", "Uma", "Victor", "Wendy", "Xavier", "Yara", "Zoe", "Alice", "Bob",
+    "Charlie", "David", "Emma", "Frank", "Grace", "Henry", "Ivy", "Jack", "Kate", "Liam", "Mia", "Nathan", "Olivia", "Peter",
+    "Quinn", "Rachel", "Sam", "Taylor", "Uma", "Victor", "Wendy", "Xavier",
+    "Zara", "Aaron", "Bella", "Connor", "Daisy", "Elijah", "Faith", "Gavin", "Hannah", "Isaac",
+    "Jessica", "Kai", "Layla", "Matthew", "Natalie", "Oscar", "Paige", "Quentin", "Rebecca", "Seth",
+    "Tara", "Uriel", "Violet", "William", "Xena", "Yasmine", "Zachary", "Ava", "Benjamin", "Chloe",
+    "Daniel", "Emily", "Finn", "Grace", "Hugo", "Isla", "Jayden", "Kylie", "Liam", "Mila",
+    "Noah", "Olivia", "Peyton", "Quinn", "Ryan", "Samantha", "Theo", "Ursula", "Victoria", "Wyatt",
+    "Xander", "Yara", "Zoe",
+    "Amelia", "Brody", "Cara", "Dylan", "Eva", "Gabriel", "Hazel", "Ian", "Jasmine", "Kevin",
+    "Luna", "Michael", "Nora", "Owen", "Penelope", "Riley", "Sophia", "Tristan", "Vivian", "Wesley",
+    "Ximena", "Yasmine", "Zander"
+    // New names added below
 )

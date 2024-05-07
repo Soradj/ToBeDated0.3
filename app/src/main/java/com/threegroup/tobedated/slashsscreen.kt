@@ -1,4 +1,4 @@
-package com.threegroup.tobedated.composeables.composables
+package com.threegroup.tobedated
 
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -21,12 +21,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.threegroup.tobedated.R
 import com.threegroup.tobedated.theme.AppTheme
 import kotlin.math.ceil
 
@@ -130,4 +131,20 @@ fun SplashScreen(
             )
         }
     }
+}
+@Composable
+fun getAddShadow(style: TextStyle, type: String): TextStyle {
+    val displace = when (type){
+        "med" -> 8f
+        "body" -> 4f
+        "label" -> 4f
+        else -> 8f
+    }
+    return style.copy(
+        shadow = Shadow(
+            color = AppTheme.colorScheme.primary.copy(alpha = 0.75f),
+            offset = Offset(displace, displace),
+            blurRadius = displace
+        )
+    )
 }

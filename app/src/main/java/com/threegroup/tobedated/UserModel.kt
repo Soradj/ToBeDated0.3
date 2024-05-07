@@ -1,4 +1,4 @@
-package com.threegroup.tobedated.shareclasses.models
+package com.threegroup.tobedated
 
 data class UserModel(
     var name            : String = "",
@@ -91,42 +91,3 @@ data class UserSearchPreferenceModel(
     var sexHealth           :List<String> = listOf("Doesn't Matter"),
     var afterCare           :List<String> = listOf("Doesn't Matter"),
 )
-
-data class PreferenceIndexModel(
-    var pronoun : Int = -1,
-    var gender : Int = -1,
-    var hieght : Int = -1,
-    var ethnicity : Int = -1,
-    var star: Int = -1,
-    var sexOrientation :Int = -1,
-    var seeking : Int = -1,
-    var sex : Int = -1,
-    var children : Int = -1,
-    var family : Int = -1,
-    var education : Int = -1,
-    var religion : Int = -1,
-    var politics : Int = -1,
-    var relationship : Int = -1,
-    var intentions : Int = -1,
-    var drink : Int = -1,
-    var smoke : Int = -1,
-    var weed : Int = -1,
-    var promptQ1 : Int = -1,
-    var promptA1 : Int = -1,
-    var promptQ2 : Int = -1,
-    var promptA2 : Int = -1,
-    var promptQ3 : Int = -1,
-    var promptA3 : Int = -1,
-    var meetUp  : Int = -1
-)
-
-data class AdditionsIndex(
-    var leaning :Int = -1,
-    var lookingFor :Int = -1,
-    var experience :Int = -1,
-    var location :Int = -1,
-    var comm :Int = -1,
-    var sexHealth :Int = -1,
-    var afterCare :Int = -1,
-)
-
