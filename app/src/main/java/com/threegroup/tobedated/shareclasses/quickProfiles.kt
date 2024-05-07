@@ -9,30 +9,42 @@ import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.database
 import com.google.firebase.storage.FirebaseStorage
 import com.threegroup.tobedated.R
+import com.threegroup.tobedated.shareclasses.models.CasualAdditions
 import com.threegroup.tobedated.shareclasses.models.UserModel
 import com.threegroup.tobedated.shareclasses.models.UserSearchPreferenceModel
+import com.threegroup.tobedated.shareclasses.models.afterCareOptions
 import com.threegroup.tobedated.shareclasses.models.childrenOptions
+import com.threegroup.tobedated.shareclasses.models.commOptions
 import com.threegroup.tobedated.shareclasses.models.curiositiesANDImaginations
 import com.threegroup.tobedated.shareclasses.models.drinkOptions
 import com.threegroup.tobedated.shareclasses.models.educationOptions
 import com.threegroup.tobedated.shareclasses.models.ethnicityOptions
+import com.threegroup.tobedated.shareclasses.models.expectationsANDCommunication
+import com.threegroup.tobedated.shareclasses.models.experienceOptions
 import com.threegroup.tobedated.shareclasses.models.familyOptions
 import com.threegroup.tobedated.shareclasses.models.genderOptions
 import com.threegroup.tobedated.shareclasses.models.insightsANDReflections
 import com.threegroup.tobedated.shareclasses.models.intentionsOptions
+import com.threegroup.tobedated.shareclasses.models.leaningOptions
+import com.threegroup.tobedated.shareclasses.models.limitsANDBoundaries
+import com.threegroup.tobedated.shareclasses.models.locationOptions
+import com.threegroup.tobedated.shareclasses.models.lookingForOptions
 import com.threegroup.tobedated.shareclasses.models.mbtiList
 import com.threegroup.tobedated.shareclasses.models.meetUpOptions
 import com.threegroup.tobedated.shareclasses.models.passionsANDInterests
 import com.threegroup.tobedated.shareclasses.models.politicsOptions
+import com.threegroup.tobedated.shareclasses.models.preferencesAndDesires
 import com.threegroup.tobedated.shareclasses.models.pronounOptions
 import com.threegroup.tobedated.shareclasses.models.relationshipOptions
 import com.threegroup.tobedated.shareclasses.models.religionOptions
 import com.threegroup.tobedated.shareclasses.models.seekingOptions
+import com.threegroup.tobedated.shareclasses.models.sexHealthOptions
 import com.threegroup.tobedated.shareclasses.models.sexOptions
 import com.threegroup.tobedated.shareclasses.models.sexOrientationOptions
 import com.threegroup.tobedated.shareclasses.models.smokeOptions
 import com.threegroup.tobedated.shareclasses.models.starOptions
 import com.threegroup.tobedated.shareclasses.models.tabs
+import com.threegroup.tobedated.shareclasses.models.tabsCasual
 import com.threegroup.tobedated.shareclasses.models.weedOptions
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -50,36 +62,48 @@ fun generateRandomFirstName(): String {
         "Olivia", "Peter", "Quinn", "Rachel", "Sam", "Taylor", "Uma", "Victor", "Wendy", "Xavier", "Yara", "Zoe", "Alice", "Bob",
         "Charlie", "David", "Emma", "Frank", "Grace", "Henry", "Ivy", "Jack", "Kate", "Liam", "Mia", "Nathan", "Olivia", "Peter",
         "Quinn", "Rachel", "Sam", "Taylor", "Uma", "Victor", "Wendy", "Xavier",
-        // New names added below
         "Zara", "Aaron", "Bella", "Connor", "Daisy", "Elijah", "Faith", "Gavin", "Hannah", "Isaac",
         "Jessica", "Kai", "Layla", "Matthew", "Natalie", "Oscar", "Paige", "Quentin", "Rebecca", "Seth",
         "Tara", "Uriel", "Violet", "William", "Xena", "Yasmine", "Zachary", "Ava", "Benjamin", "Chloe",
         "Daniel", "Emily", "Finn", "Grace", "Hugo", "Isla", "Jayden", "Kylie", "Liam", "Mila",
         "Noah", "Olivia", "Peyton", "Quinn", "Ryan", "Samantha", "Theo", "Ursula", "Victoria", "Wyatt",
-        "Xander", "Yara", "Zoe"
+        "Xander", "Yara", "Zoe",
+        "Amelia", "Brody", "Cara", "Dylan", "Eva", "Gabriel", "Hazel", "Ian", "Jasmine", "Kevin",
+        "Luna", "Michael", "Nora", "Owen", "Penelope", "Riley", "Sophia", "Tristan", "Vivian", "Wesley",
+        "Ximena", "Yasmine", "Zander"
+        // New names added below
     )
     return firstNames.random()
 }
 fun getDrawableResource(ethnicity: String, gender: String): Int {
     val resourceId = when {
         ethnicity == "Black/African Descent" && gender == "Male" -> R.drawable._blackmale
-        ethnicity == "Black/African Descent" && gender == "Female" -> R.drawable._blackmale
+        ethnicity == "Black/African Descent" && gender == "Female" -> R.drawable._blackfemale
+        ethnicity == "Black/African Descent" &&  gender == "Other" -> if(Random.nextBoolean()){R.drawable._blackmale}else{R.drawable._blackfemale}
         ethnicity == "East Asian" && gender == "Male" -> R.drawable._eastmale
         ethnicity == "East Asian" && gender == "Female" -> R.drawable._eastfemale
+        ethnicity == "East Asian" && gender == "Other" -> if(Random.nextBoolean()){R.drawable._eastmale}else{R.drawable._eastfemale}
         ethnicity == "Hispanic/Latino" && gender == "Male" -> R.drawable._hispanicmale
         ethnicity == "Hispanic/Latino" && gender == "Female" -> R.drawable._hispanicfemale
+        ethnicity == "Hispanic/Latino" && gender == "Other" -> if(Random.nextBoolean()){R.drawable._hispanicmale}else{R.drawable._hispanicfemale}
         ethnicity == "Middle Eastern" && gender == "Male" -> R.drawable._middlemale
-        ethnicity == "Middle Eastern" && gender == "Female" -> R.drawable._middlemale
+        ethnicity == "Middle Eastern" && gender == "Female" -> R.drawable._middlefemale
+        ethnicity == "Middle Eastern" && gender == "Other" -> if(Random.nextBoolean()){R.drawable._middlemale}else{R.drawable._middlefemale}
         ethnicity == "Native American" && gender == "Male" -> R.drawable._nativemale
         ethnicity == "Native American" && gender == "Female" -> R.drawable._nativefemale
+        ethnicity == "Native American" && gender == "Other" -> if(Random.nextBoolean()){R.drawable._nativemale}else{R.drawable._nativefemale}
         ethnicity == "Pacific Islander" && gender == "Male" -> R.drawable._pacificmale
         ethnicity == "Pacific Islander" && gender == "Female" -> R.drawable._pacificfemale
+        ethnicity == "Pacific Islander" && gender == "Other" -> if(Random.nextBoolean()){R.drawable._pacificmale}else{R.drawable._pacificfemale}
         ethnicity == "South Asian" && gender == "Male" -> R.drawable._southmale
         ethnicity == "South Asian" && gender == "Female" -> R.drawable._southfemale
+        ethnicity == "South Asian" && gender == "Other" -> if(Random.nextBoolean()){R.drawable._southmale}else{R.drawable._southfemale}
         ethnicity == "Southeast Asian" && gender == "Male" -> R.drawable._southeastmale
         ethnicity == "Southeast Asian" && gender == "Female" -> R.drawable._southeastfemale
+        ethnicity == "Southeast Asian" && gender == "Other" -> if(Random.nextBoolean()){R.drawable._southeastmale}else{R.drawable._southeastfemale}
         ethnicity == "White/Caucasian" && gender == "Male" -> R.drawable._whitemale
         ethnicity == "White/Caucasian" && gender == "Female" -> R.drawable._whitefemale
+        ethnicity == "White/Caucasian" && gender == "Other" -> if(Random.nextBoolean()){R.drawable._whitemale}else{R.drawable._whitefemale}
         else -> R.drawable._hispanicfemale // Default resource ID
     }
     Log.d("getDrawableResource", "Resource ID: $resourceId")
@@ -91,14 +115,25 @@ fun getResourceUri(context: Context, resourceId: Int): String {
     return uriString
 }
 suspend fun generateRandomUserData(number:String, context: Context, contentResolver:ContentResolver): UserModel {
+    val hasCas = Random.nextBoolean()
     val prompt1 = Random.nextInt(1, 10)
     val prompt2= Random.nextInt(1, 10)
     val prompt3= Random.nextInt(1, 10)
     val tab1 = tabs.random()
     val tab2= tabs.random()
     val tab3 = tabs.random()
+    val tab1c = tabsCasual.random()
+    val tab2c= tabsCasual.random()
+    val tab3c = tabsCasual.random()
     val ethnicity = ethnicityOptions.random()
     val sex = sexOptions.random()
+    //broken location --- 37.4220936/-122.083922
+    //farmingDale ---- 40.7528570 -73.4265742
+    val latitude = 40.7528570
+    val longitude = -73.4265742
+
+    val roundedLatitude = String.format("%.7f", latitude + Random.nextDouble(-1.000, 1.000))
+    val roundedLongitude = String.format("%.7f", longitude + Random.nextDouble(-1.000, 1.000))
     val photoUrl = coroutineScope {
         async {
             val photoResourceId = getDrawableResource(ethnicity, sex)
@@ -171,25 +206,79 @@ suspend fun generateRandomUserData(number:String, context: Context, contentResol
         image2 = photoUrl,
         image3 = photoUrl,
         image4 = photoUrl,
-        location = "${(40.7528570 + Random.nextDouble(-1.000, 1.000))}/${-73.4265742 + Random.nextDouble(-1.000, 1.000)}",//37.4220936/-122.083922
+        location = "$roundedLatitude/$roundedLongitude",
         status = System.currentTimeMillis(),
         number = number,//to gen random numbers
-        verified = false,
+        verified = Random.nextBoolean(),
         seeMe = false,
         hasThree = false,
-        hasCasual = false,
+        hasCasual = hasCas,
         hasFriends = false,
-        userPref = UserSearchPreferenceModel()
+        hasThreeCasual = false,
+        userPref = UserSearchPreferenceModel(),
+        casualAdditions = CasualAdditions(
+            leaning= if(hasCas){""}else{
+                leaningOptions.random()},
+            lookingFor=if(hasCas){""}else{
+                lookingForOptions.random()},
+            experience=if(hasCas){""}else{
+                experienceOptions.random()},
+            location=if(hasCas){""}else{
+                locationOptions.random()},
+            comm=if(hasCas){""}else{
+                commOptions.random()},
+            sexHealth=if(hasCas){""}else{
+                sexHealthOptions.random()},
+            afterCare=if(hasCas){""}else{
+                afterCareOptions.random()},
+            casualBio=if(hasCas){""}else{casualAppBios.random()},
+            promptQ1=if(hasCas){""}else{when (tab2c) {
+                "Preferences and Desires" -> preferencesAndDesires[prompt2]
+                "Limits and Boundaries" -> limitsANDBoundaries[prompt2]
+                "Expectations and Communication" -> expectationsANDCommunication[prompt2]
+                else -> preferencesAndDesires[prompt2]
+            }},
+            promptA1=if(hasCas){""}else{when (tab1c) {
+                "Preferences and Desires" -> preferencesAndDesiresAnswers[prompt1]
+                "Limits and Boundaries" -> limitsANDBoundariesAnswers[prompt1]
+                "Expectations and Communication" -> expectationsANDCommunicationAnswers[prompt1]
+                else -> preferencesAndDesiresAnswers[prompt1]
+            }},
+            promptQ2=if(hasCas){""}else{when (tab2c) {
+                "Preferences and Desires" -> preferencesAndDesires[prompt2]
+                "Limits and Boundaries" -> limitsANDBoundaries[prompt2]
+                "Expectations and Communication" -> expectationsANDCommunication[prompt2]
+                else -> preferencesAndDesires[prompt2]
+            }},
+            promptA2=if(hasCas){""}else{when (tab2c) {
+                "Preferences and Desires" -> preferencesAndDesiresAnswers[prompt2]
+                "Limits and Boundaries" -> limitsANDBoundariesAnswers[prompt2]
+                "Expectations and Communication" -> expectationsANDCommunicationAnswers[prompt2]
+                else -> preferencesAndDesiresAnswers[prompt2]
+            }},
+            promptQ3=if(hasCas){""}else{when (tab3c) {
+                "Preferences and Desires" -> preferencesAndDesires[prompt3]
+                "Limits and Boundaries" -> limitsANDBoundaries[prompt3]
+                "Expectations and Communication" -> expectationsANDCommunication[prompt3]
+                else -> preferencesAndDesires[prompt3]
+            }},
+            promptA3=if(hasCas){""}else{when (tab3c) {
+                "Preferences and Desires" -> preferencesAndDesiresAnswers[prompt3]
+                "Limits and Boundaries" -> limitsANDBoundariesAnswers[prompt3]
+                "Expectations and Communication" -> expectationsANDCommunicationAnswers[prompt3]
+                else -> preferencesAndDesiresAnswers[prompt3]
+            }},
+        )
     )
     return userModel
 }
 
 fun makeProfiles(context:Context, contentResolver: ContentResolver) {
-    val numberOfUsers = 25 // Change this to the number of users you want to generate
+    val numberOfUsers = 6 // Change this to the number of users you want to generate
     val database = Firebase.database
     val reference = database.getReference("users")
 
-    var number = 150
+    var number = 174
 
     runBlocking {
         repeat(numberOfUsers) {
@@ -318,4 +407,87 @@ val datingAppBios = listOf(
     "A true romantic with a heart full of dreams and a soul full of love. Let's embark on a journey of passion and romance, writing our own love story with every whispered word and stolen kiss.",
     "With a love for the written word and a passion for storytelling, I believe that every story deserves to be told. Whether it's penning my own tales of adventure or getting lost in the pages of a beloved book, I'm seeking a fellow wordsmith to share in the magic of storytelling.",
     "A true believer in the power of connection and the magic of chemistry. Let's see if we can ignite sparks and create fireworks with just a glance and a smile, trusting in the power of attraction to lead us to our happily ever after.",
+    // already have
+    "With a passion for exploration and an insatiable curiosity, I'm always on the lookout for my next adventure. Whether it's discovering hidden gems in the city or embarking on spontaneous road trips, I'm seeking a fellow thrill-seeker to join me on my journey.",
+    "An aspiring chef with a love for all things culinary, I'm happiest when I'm experimenting in the kitchen or exploring local food markets. Seeking someone to share my love for gastronomic adventures and culinary creations.",
+    "A hopeless romantic with a penchant for heartfelt gestures and spontaneous surprises. Let's create unforgettable memories together, filled with laughter, love, and endless affection.",
+    "With a passion for music and a love for live performances, I'm always up for a concert or music festival. Whether it's rocking out to my favorite bands or discovering new artists, I'm seeking a fellow music lover to share in the magic of live music.",
+    "An advocate for mental health and wellness, I believe in the importance of self-care and personal growth. Seeking someone who values mindfulness and emotional intelligence, and isn't afraid to delve into deep conversations about life and love.",
+    "A hopeless wanderer with a heart full of dreams and a soul full of wanderlust. Let's embark on a journey of discovery and exploration, exploring new destinations and creating unforgettable memories along the way.",
+    "With a love for adrenaline-fueled adventures, I'm always seeking out my next thrill. Whether it's bungee jumping off cliffs or tackling white-water rapids, I'm seeking a daredevil companion to join me on my quest for excitement.",
+    "An eternal optimist with a zest for life, I believe in finding joy in the little things and spreading positivity wherever I go. Let's laugh, love, and live life to the fullest, together.",
+    "With a passion for creativity and a flair for the dramatic, I'm always up for a night of theater or a performance art show. Whether it's expressing myself through dance or immersing myself in the world of performance, I'm seeking a fellow artist to share in the magic.",
+    "A connoisseur of culture with a love for all things arts and humanities. Whether it's exploring museums, attending gallery openings, or indulging in live theater, I'm seeking someone who shares my passion for intellectual pursuits and cultural experiences.",
+    "A true believer in the power of kindness and compassion, I strive to make a positive impact on the world around me. Seeking someone who shares my values and is passionate about making a difference, one act of kindness at a time.",
+    "With a passion for adventure and a love for the great outdoors, I'm always seeking new thrills and challenges. Whether it's summiting mountains or embarking on epic hiking trails, I'm seeking a fellow nature enthusiast to share in the beauty of the wilderness.",
+    "An eternal optimist with a love for life's simple pleasures, I find joy in the beauty of everyday moments and the warmth of genuine connections. Seeking someone to share laughter, love, and lazy Sunday mornings with.",
+    "With a love for learning and a thirst for knowledge, I'm always seeking out new experiences and opportunities for growth. Whether it's exploring new cultures, mastering new skills, or delving into deep conversations, I'm seeking a curious mind to join me on my journey of discovery.",
+    "A true romantic with a love for old-fashioned romance and timeless traditions. Let's recreate classic movie moments and write our own love story, filled with passion, romance, and a touch of old-world charm.",
+)
+val casualAppBios = listOf(
+    "A playful adventurer who enjoys exploring new sensations and pushing boundaries in the bedroom. Let's embark on a journey of pleasure and discovery together.",
+    "An open-minded sensualist who believes in embracing desire and indulging in passionate encounters. Let's explore our fantasies and ignite sparks of excitement.",
+    "A confident explorer of pleasure who enjoys experimenting with different desires and fantasies. Let's dive into the depths of our desires and discover new realms of ecstasy.",
+    "A laid-back hedonist who believes in living life to the fullest and savoring every moment of pleasure. Let's indulge in uninhibited fun and explore our deepest desires.",
+    "A carefree libertine who enjoys exploring the boundaries of pleasure and intimacy. Let's embark on a journey of sensual discovery and mutual satisfaction.",
+    "A free-spirited sensualist who believes in the power of connection and chemistry. Let's explore our desires and fantasies together, igniting sparks of passion and excitement.",
+    "A playful hedonist who enjoys indulging in sensual pleasures and exploring new realms of ecstasy. Let's push boundaries and discover new heights of pleasure together.",
+    "An adventurous libertine who thrives on spontaneity and excitement in the bedroom. Let's explore our desires and fantasies together, embracing pleasure without inhibition.",
+    "A laid-back pleasure-seeker who enjoys exploring the depths of desire and passion. Let's embark on a journey of sensual discovery and mutual satisfaction.",
+    "A carefree sensualist who believes in the importance of pleasure and intimacy. Let's explore our desires and fantasies together, indulging in the ecstasy of the moment.",
+    "A playful explorer of pleasure who enjoys pushing boundaries and discovering new realms of ecstasy. Let's embrace our desires and fantasies, igniting sparks of passion and excitement.",
+    "An open-minded hedonist who enjoys exploring the diverse landscape of pleasure and intimacy. Let's indulge in uninhibited fun and explore our deepest desires together.",
+    "A confident sensualist who believes in the power of connection and chemistry. Let's explore our desires and fantasies together, igniting sparks of passion and excitement.",
+    "A carefree libertine who thrives on spontaneity and excitement in the bedroom. Let's explore our desires and fantasies together, embracing pleasure without inhibition.",
+    "A playful hedonist who enjoys indulging in sensual pleasures and exploring new realms of ecstasy. Let's push boundaries and discover new heights of pleasure together.",
+    "An adventurous libertine who thrives on spontaneity and excitement in the bedroom. Let's explore our desires and fantasies together, embracing pleasure without inhibition.",
+    "A laid-back pleasure-seeker who enjoys exploring the depths of desire and passion. Let's embark on a journey of sensual discovery and mutual satisfaction.",
+    "A carefree sensualist who believes in the importance of pleasure and intimacy. Let's explore our desires and fantasies together, indulging in the ecstasy of the moment.",
+    "A playful explorer of pleasure who enjoys pushing boundaries and discovering new realms of ecstasy. Let's embrace our desires and fantasies, igniting sparks of passion and excitement.",
+    "An open-minded hedonist who enjoys exploring the diverse landscape of pleasure and intimacy. Let's indulge in uninhibited fun and explore our deepest desires together.",
+    "A confident sensualist who believes in the power of connection and chemistry. Let's explore our desires and fantasies together, igniting sparks of passion and excitement.",
+    "A carefree libertine who thrives on spontaneity and excitement in the bedroom. Let's explore our desires and fantasies together, embracing pleasure without inhibition.",
+    "A playful hedonist who enjoys indulging in sensual pleasures and exploring new realms of ecstasy. Let's push boundaries and discover new heights of pleasure together.",
+    "An adventurous libertine who thrives on spontaneity and excitement in the bedroom. Let's explore our desires and fantasies together, embracing pleasure without inhibition.",
+    "A laid-back pleasure-seeker who enjoys exploring the depths of desire and passion. Let's embark on a journey of sensual discovery and mutual satisfaction.",
+    "A carefree sensualist who believes in the importance of pleasure and intimacy. Let's explore our desires and fantasies together, indulging in the ecstasy of the moment.",
+    "A playful explorer of pleasure who enjoys pushing boundaries and discovering new realms of ecstasy. Let's embrace our desires and fantasies, igniting sparks of passion and excitement.",
+    "An open-minded hedonist who enjoys exploring the diverse landscape of pleasure and intimacy. Let's indulge in uninhibited fun and explore our deepest desires together.",
+    "A confident sensualist who believes in the power of connection and chemistry. Let's explore our desires and fantasies together, igniting sparks of passion and excitement."
+)
+val preferencesAndDesiresAnswers = listOf(
+    "I enjoy a mix of taking charge and letting my partner take control, depending on the mood and dynamic between us. Variety keeps things exciting!",
+    "I'm definitely open to experimenting with new fantasies and kinks, but I also enjoy the comfort of familiar activities. It's all about finding a balance.",
+    "Physical attraction is important to me in a sexual encounter, as it adds to the overall excitement and chemistry between partners.",
+    "I enjoy both engaging in foreplay and building anticipation, as well as diving straight into the main event. It depends on the mood and connection with my partner.",
+    "Yes, I believe in discussing sexual boundaries and preferences with my partner beforehand to ensure that we're both on the same page and comfortable.",
+    "I enjoy a mix of slow and sensual experiences, as well as more intense and passionate encounters. It all depends on the mood and chemistry with my partner.",
+    "Mutual pleasure and satisfaction are crucial to me in a sexual encounter. I believe in prioritizing my partner's pleasure as much as my own.",
+    "I'm open to exploring different locations or settings for sexual activities, but I also appreciate the privacy and familiarity of a comfortable space.",
+    "I have specific fantasies and role-playing scenarios that I'd love to explore with a partner who's open-minded and adventurous.",
+    "Communication and feedback during sex are essential to me to ensure that both partners' needs are met and that we're both enjoying the experience to the fullest.",
+)
+val limitsANDBoundariesAnswers = listOf(
+    "My hard limits or non-negotiable boundaries include anything involving non-consensual or coercive behavior, as well as activities that pose a risk to my physical or emotional well-being.",
+    "Yes, I believe in respecting my partner's boundaries and discussing them openly and honestly. Consent and mutual agreement are essential for a positive and respectful sexual encounter.",
+    "Consent and mutual agreement are of utmost importance to me before engaging in any sexual activity. I believe in ensuring that all parties involved are comfortable and enthusiastic about the experience.",
+    "Yes, I am open to establishing safe words or signals to communicate discomfort or the need to stop during sex. Clear communication is key to ensuring a safe and consensual sexual encounter.",
+    "I am comfortable discussing my sexual health status and practices with potential partners, and I believe in being open and honest about STI testing and safer sex practices.",
+    "I would communicate openly and honestly with my partner about my discomfort and discuss alternative activities that we both enjoy. Respect for each other's boundaries is paramount.",
+    "Yes, I am committed to using protection and practicing safe sex with new partners to ensure the health and safety of both parties involved.",
+    "I have specific preferences regarding sexual hygiene and cleanliness and believe in maintaining good hygiene practices for a safe and enjoyable sexual experience.",
+    "I approach discussions about safer sex practices and STI testing with potential partners openly and honestly. I believe in ensuring that both parties are informed and comfortable with the decisions made.",
+    "Yes, I am open to discussing past sexual experiences or history with new partners in a respectful and non-judgmental manner. Open communication is essential for building trust and understanding.",
+)
+val expectationsANDCommunicationAnswers = listOf(
+    "I prefer to communicate my sexual desires and needs openly and directly with my partner. Clear communication is key to ensuring mutual satisfaction and pleasure.",
+    "Yes, I believe in being open and honest about all aspects of my sexuality, including fantasies or desires that may be considered unconventional or taboo. Trust and acceptance are essential for a fulfilling sexual connection.",
+    "I believe in having open and honest conversations about sexual performance and satisfaction with my partner. It's important to communicate openly to ensure that both partners feel valued and satisfied.",
+    "Absolutely, I see giving and receiving feedback during sex as a way to enhance the experience for both partners. Constructive feedback can lead to greater intimacy and pleasure.",
+    "Open and honest communication about sexual preferences and expectations before meeting up is very important to me. It helps establish mutual understanding and ensures that both partners are on the same page.",
+    "I am comfortable discussing any concerns or anxieties I may have about a sexual encounter with my partner. Trust and communication are essential for a positive and enjoyable experience.",
+    "I approach discussions about sexual history and experiences with sensitivity and respect for my partner's feelings. I believe in creating a safe and non-judgmental space for open dialogue.",
+    "Yes, I am open to discussing boundaries and expectations regarding the nature of the sexual encounter. It's important to establish clear boundaries and expectations to ensure that both partners feel comfortable and respected.",
+    "I believe in openly addressing any mismatches in sexual desires or expectations with my partner. By discussing our needs and desires openly and honestly, we can work together to find a solution that is satisfying for both of us.",
+    "Mutual respect and consideration for my partner's feelings and boundaries are top priorities for me during a sexual encounter. I believe in creating a safe and comfortable environment where both partners feel valued and respected.",
 )
