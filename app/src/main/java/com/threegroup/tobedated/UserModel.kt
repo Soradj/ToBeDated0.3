@@ -1,5 +1,7 @@
 package com.threegroup.tobedated
 
+import com.threegroup.tobedated.generic.AgeRange
+
 data class UserModel(
     var name            : String = "",
     var birthday        : String = "",

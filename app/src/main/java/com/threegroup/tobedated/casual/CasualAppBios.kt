@@ -1,0 +1,33 @@
+package com.threegroup.tobedated.casual
+
+val casualAppBios = listOf(
+    "A playful adventurer who enjoys exploring new sensations and pushing boundaries in the bedroom. Let's embark on a journey of pleasure and discovery together.",
+    "An open-minded sensualist who believes in embracing desire and indulging in passionate encounters. Let's explore our fantasies and ignite sparks of excitement.",
+    "A confident explorer of pleasure who enjoys experimenting with different desires and fantasies. Let's dive into the depths of our desires and discover new realms of ecstasy.",
+    "A laid-back hedonist who believes in living life to the fullest and savoring every moment of pleasure. Let's indulge in uninhibited fun and explore our deepest desires.",
+    "A carefree libertine who enjoys exploring the boundaries of pleasure and intimacy. Let's embark on a journey of sensual discovery and mutual satisfaction.",
+    "A free-spirited sensualist who believes in the power of connection and chemistry. Let's explore our desires and fantasies together, igniting sparks of passion and excitement.",
+    "A playful hedonist who enjoys indulging in sensual pleasures and exploring new realms of ecstasy. Let's push boundaries and discover new heights of pleasure together.",
+    "An adventurous libertine who thrives on spontaneity and excitement in the bedroom. Let's explore our desires and fantasies together, embracing pleasure without inhibition.",
+    "A laid-back pleasure-seeker who enjoys exploring the depths of desire and passion. Let's embark on a journey of sensual discovery and mutual satisfaction.",
+    "A carefree sensualist who believes in the importance of pleasure and intimacy. Let's explore our desires and fantasies together, indulging in the ecstasy of the moment.",
+    "A playful explorer of pleasure who enjoys pushing boundaries and discovering new realms of ecstasy. Let's embrace our desires and fantasies, igniting sparks of passion and excitement.",
+    "An open-minded hedonist who enjoys exploring the diverse landscape of pleasure and intimacy. Let's indulge in uninhibited fun and explore our deepest desires together.",
+    "A confident sensualist who believes in the power of connection and chemistry. Let's explore our desires and fantasies together, igniting sparks of passion and excitement.",
+    "A carefree libertine who thrives on spontaneity and excitement in the bedroom. Let's explore our desires and fantasies together, embracing pleasure without inhibition.",
+    "A playful hedonist who enjoys indulging in sensual pleasures and exploring new realms of ecstasy. Let's push boundaries and discover new heights of pleasure together.",
+    "An adventurous libertine who thrives on spontaneity and excitement in the bedroom. Let's explore our desires and fantasies together, embracing pleasure without inhibition.",
+    "A laid-back pleasure-seeker who enjoys exploring the depths of desire and passion. Let's embark on a journey of sensual discovery and mutual satisfaction.",
+    "A carefree sensualist who believes in the importance of pleasure and intimacy. Let's explore our desires and fantasies together, indulging in the ecstasy of the moment.",
+    "A playful explorer of pleasure who enjoys pushing boundaries and discovering new realms of ecstasy. Let's embrace our desires and fantasies, igniting sparks of passion and excitement.",
+    "An open-minded hedonist who enjoys exploring the diverse landscape of pleasure and intimacy. Let's indulge in uninhibited fun and explore our deepest desires together.",
+    "A confident sensualist who believes in the power of connection and chemistry. Let's explore our desires and fantasies together, igniting sparks of passion and excitement.",
+    "A carefree libertine who thrives on spontaneity and excitement in the bedroom. Let's explore our desires and fantasies together, embracing pleasure without inhibition.",
+    "A playful hedonist who enjoys indulging in sensual pleasures and exploring new realms of ecstasy. Let's push boundaries and discover new heights of pleasure together.",
+    "An adventurous libertine who thrives on spontaneity and excitement in the bedroom. Let's explore our desires and fantasies together, embracing pleasure without inhibition.",
+    "A laid-back pleasure-seeker who enjoys exploring the depths of desire and passion. Let's embark on a journey of sensual discovery and mutual satisfaction.",
+    "A carefree sensualist who believes in the importance of pleasure and intimacy. Let's explore our desires and fantasies together, indulging in the ecstasy of the moment.",
+    "A playful explorer of pleasure who enjoys pushing boundaries and discovering new realms of ecstasy. Let's embrace our desires and fantasies, igniting sparks of passion and excitement.",
+    "An open-minded hedonist who enjoys exploring the diverse landscape of pleasure and intimacy. Let's indulge in uninhibited fun and explore our deepest desires together.",
+    "A confident sensualist who believes in the power of connection and chemistry. Let's explore our desires and fantasies together, igniting sparks of passion and excitement."
+)
