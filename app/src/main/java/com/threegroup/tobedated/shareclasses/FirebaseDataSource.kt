@@ -497,6 +497,7 @@ class FirebaseDataSource {
         val lastChild = messageNodes.lastOrNull()
         val lastMessage = lastChild?.child("message")?.getValue(String::class.java) ?: ""
         emit(lastMessage)
+
     }
 
     fun getChatData(chatId: String?, inOther: String): Flow<List<MessageModel>> = callbackFlow {
