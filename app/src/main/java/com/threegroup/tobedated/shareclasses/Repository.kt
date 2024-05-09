@@ -63,8 +63,8 @@ class Repository(
         firebaseDataSource.openChat(chatId, inOther)
     }
 
-    fun checkRead(chatId: String, inOther:String="", callback: (Boolean) ->Unit) {
-        firebaseDataSource.checkRead(chatId, inOther, callback)
+    fun checkRead(chatId: String, inOther:String=""): Flow<Boolean> {
+        return firebaseDataSource.checkRead(chatId, inOther)
     }
 
     suspend fun setUserInfo(number: String, location: String, inLogin:Boolean = false): Flow<UserModel?> {

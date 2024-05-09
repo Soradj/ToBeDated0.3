@@ -61,8 +61,8 @@ fun TopAndBotBars(
     vmApi: ApiViewModel,
     mainNav: NavHostController,
     mainActivity: MainActivity,
-    navScreen: @Composable (nav:NavHostController, callback: (String) -> Unit) -> Unit,
-    currentActivity:String,
+    navScreen: @Composable (nav: NavHostController, callback: (String) -> Unit) -> Unit,
+    currentActivity: String,
 ) {
     mainActivity.setLastActivity(currentActivity)
     val nav = rememberNavController()
@@ -70,16 +70,16 @@ fun TopAndBotBars(
     var inMain by remember { mutableStateOf(true) }
     var insideWhat by remember { mutableStateOf("Main") }
 
-    val inOther = when(currentActivity){
+    val inOther = when (currentActivity) {
         "dating" -> ""
         "casual" -> "casual"
         "friend" -> "friend"
         else -> ""
     }
-    // Initialize the notification count when the composable is first composed
     val notificationCount by vmRoot.totalNotificationCountStateFlow.collectAsState(0)
     LaunchedEffect(Unit) {
-      vmRoot.updateNotificationCounts()
+        vmRoot.updateNotificationCounts()
+
     }
     val items = listOf(
         BotNavItem(
@@ -133,25 +133,26 @@ fun TopAndBotBars(
                     NavDraw(
                         vmApi = vmApi,
                         datingClickable = {
-                            if(currentActivity != "dating"){
-                                mainNav.navigate("Dating"){
+                            if (currentActivity != "dating") {
+                                mainNav.navigate("Dating") {
                                     popUpTo(upperCasedFirstLetter) {
                                         inclusive = true
                                         saveState = false
                                     }
                                 }
-                            }},
+                            }
+                        },
                         casualClickable = {
-                            if(currentActivity != "casual"){
-                                if(MyApp.signedInUser.value!!.hasCasual){
-                                    mainNav.navigate("Casual"){
+                            if (currentActivity != "casual") {
+                                if (MyApp.signedInUser.value!!.hasCasual) {
+                                    mainNav.navigate("Casual") {
                                         popUpTo(upperCasedFirstLetter) {
                                             inclusive = true
                                             saveState = false
                                         }
                                     }
-                                }else{
-                                    mainNav.navigate("CasualSignup"){
+                                } else {
+                                    mainNav.navigate("CasualSignup") {
                                         popUpTo(upperCasedFirstLetter) {
                                             inclusive = true
                                             saveState = false
@@ -159,9 +160,10 @@ fun TopAndBotBars(
                                     }
                                 }
                                 //TODO BACKSTACK
-                            }},
+                            }
+                        },
                         friendsClickable = {
-                            if(currentActivity != "friend") {
+                            if (currentActivity != "friend") {
                                 //mainNav.navigate("Friends"){
 //                                        popUpTo(upperCasedFirstLetter) {
 //                                            inclusive = true
@@ -169,7 +171,8 @@ fun TopAndBotBars(
 //                                        }
 //                                    }
 //                                }
-                            }},
+                            }
+                        },
                         currentActivity = currentActivity
                     )
                 }
@@ -179,7 +182,7 @@ fun TopAndBotBars(
             Scaffold(
                 containerColor = if (isSystemInDarkTheme()) Color(0xFF181618) else Color(0xFFCDC2D0),
                 bottomBar = {
-                    if(inMain){
+                    if (inMain) {
                         NavigationBar(
                             containerColor = AppTheme.colorScheme.onTertiary,
                             modifier = Modifier.height(46.dp)
@@ -201,37 +204,48 @@ fun TopAndBotBars(
                     }
                 },
                 topBar = {
-                    if(inMain){
+                    if (inMain) {
                         TopBarMain(titleTextNum = selectedItemIndex, scope, drawerState,
                             action = {
-                                when(selectedItemIndex){
-                                    0 -> 1+1
-                                    1 -> 1+1
-                                    2 -> {nav.navigate("SearchPreferenceScreen")
-                                    inMain = false}
-                                    3 -> 1+1
-                                    4 -> {nav.navigate("EditProfileScreen")
-                                    inMain = false}
+                                when (selectedItemIndex) {
+                                    0 -> 1 + 1
+                                    1 -> 1 + 1
+                                    2 -> {
+                                        nav.navigate("SearchPreferenceScreen")
+                                        inMain = false
+                                    }
+
+                                    3 -> 1 + 1
+                                    4 -> {
+                                        nav.navigate("EditProfileScreen")
+                                        inMain = false
+                                    }
                                 }
                             }
                         )
-                    }else{
-                        when(insideWhat){
-                            "Match"->{
-                                InsideSettings(backAction = {
-                                    nav.popBackStack()
-                                    insideWhat = ""
-                                }, titleTextNum = 6,
+                    } else {
+                        when (insideWhat) {
+                            "Match" -> {
+                                InsideSettings(
+                                    backAction = {
+                                        nav.popBackStack()
+                                        insideWhat = ""
+                                    },
+                                    titleTextNum = 6,
                                 )
                             }
-                            "Settings"->{
-                                InsideSettings(backAction = {
-                                    nav.popBackStack()
-                                    inMain = true
-                                }, titleTextNum = selectedItemIndex,
+
+                            "Settings" -> {
+                                InsideSettings(
+                                    backAction = {
+                                        nav.popBackStack()
+                                        inMain = true
+                                    },
+                                    titleTextNum = selectedItemIndex,
                                 )
                             }
-                            else-> 1+1
+
+                            else -> 1 + 1
                         }
                     }
 
@@ -244,19 +258,22 @@ fun TopAndBotBars(
                         //.verticalScroll(state)
                         .fillMaxSize()
                 ) {
-                    if(insideWhat == "Main" || insideWhat == "Match" || insideWhat == "Settings"){
+                    if (insideWhat == "Main" || insideWhat == "Match" || insideWhat == "Settings") {
                         Spacer(modifier = Modifier.height(24.dp))
                     }
-                    navScreen(nav){ inside -> insideWhat = inside
-                        inMain = inside == "Main"}
-                     //All 5 screens go here
+                    navScreen(nav) { inside ->
+                        insideWhat = inside
+                        inMain = inside == "Main"
+                    }
+                    //All 5 screens go here
                 }
             }
         }
     }
 }
+
 @Composable
-fun BadgedBox(item: BotNavItem, index:Int, selectedItemIndex:Int){
+fun BadgedBox(item: BotNavItem, index: Int, selectedItemIndex: Int) {
     BadgedBox(
         badge = {
             if (item.badgeCount != 0) {
@@ -281,8 +298,13 @@ fun BadgedBox(item: BotNavItem, index:Int, selectedItemIndex:Int){
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TopBarMain(titleTextNum:Int, scope: CoroutineScope, drawerState: DrawerState, action:()->Unit ){
-    val titleText = when(titleTextNum){
+fun TopBarMain(
+    titleTextNum: Int,
+    scope: CoroutineScope,
+    drawerState: DrawerState,
+    action: () -> Unit
+) {
+    val titleText = when (titleTextNum) {
         0 -> "Stats"
         1 -> "Messages"
         2 -> "Searching"
@@ -327,22 +349,25 @@ fun TopBarMain(titleTextNum:Int, scope: CoroutineScope, drawerState: DrawerState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun InsideSettings(backAction: ()->Unit, titleTextNum: Int){
-    val titleText = when(titleTextNum){
-            0 -> ""
-            1 -> ""
-            2 -> "Search Preferences"
-            3 -> ""
-            4 -> "Edit Profile"
-            else -> ""
-        }
+fun InsideSettings(backAction: () -> Unit, titleTextNum: Int) {
+    val titleText = when (titleTextNum) {
+        0 -> ""
+        1 -> ""
+        2 -> "Search Preferences"
+        3 -> ""
+        4 -> "Edit Profile"
+        else -> ""
+    }
     CenterAlignedTopAppBar(
         modifier = Modifier.height(46.dp),
         colors = getTopColors(),
-        title = { TopBarText(title= titleText, isPhoto = titleText == "") },
+        title = { TopBarText(title = titleText, isPhoto = titleText == "") },
         navigationIcon = {
             IconButton(onClick = backAction) { //Showing in stuff like messages, editing profile and stuff
-                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.arrow_back), contentDescription = "Go back")
+                Icon(
+                    imageVector = ImageVector.vectorResource(id = R.drawable.arrow_back),
+                    contentDescription = "Go back"
+                )
             }
         },
         actions = {}

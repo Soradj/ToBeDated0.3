@@ -27,6 +27,9 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,10 +41,14 @@ import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.threegroup.tobedated.MyApp
 import com.threegroup.tobedated.R
+import com.threegroup.tobedated.RootViewModel
 import com.threegroup.tobedated.composeables.composables.GenericLabelText
 import com.threegroup.tobedated.composeables.composables.baseAppTextTheme
+import com.threegroup.tobedated.shareclasses.getChatId
 import com.threegroup.tobedated.shareclasses.models.MatchedUserModel
 import com.threegroup.tobedated.shareclasses.models.MessageModel
 import com.threegroup.tobedated.theme.AppTheme
@@ -49,13 +56,13 @@ import com.threegroup.tobedated.theme.AppTheme
 
 @Composable
 fun TextSection(
-    lazyListState:LazyListState,
-    messageList:List<MessageModel>,
-    currentUserSenderId:String,
-    match:MatchedUserModel = MatchedUserModel(),
-    feedBack:Boolean = false,
-    isRead:Boolean
-){
+    lazyListState: LazyListState,
+    messageList: List<MessageModel>,
+    currentUserSenderId: String,
+    match: MatchedUserModel = MatchedUserModel(),
+    feedBack: Boolean = false,
+    isRead: Boolean
+) {
     Column(
         Modifier.fillMaxSize()
     ) {
@@ -68,45 +75,65 @@ fun TextSection(
             state = lazyListState
         ) {
             itemsIndexed(messageList) { index, message ->
-                val last = index == (messageList.size -1)
-                val isCurrentUser = message.senderId.contains(currentUserSenderId.replaceFirstChar { "" })
+                val last = index == (messageList.size - 1)
+                val isCurrentUser =
+                    message.senderId.contains(currentUserSenderId.replaceFirstChar { "" })
                 val time = message.currentTime
-                if(feedBack){
-                    MessageItemFeedBack(message = message, isCurrentUser = isCurrentUser, timeStamp = time, last)
-                }else{
-                    MessageItem(match = match ,message = message, isCurrentUser = isCurrentUser, timeStamp = time, last, isRead)
+                if (feedBack) {
+                    MessageItemFeedBack(
+                        message = message,
+                        isCurrentUser = isCurrentUser,
+                        timeStamp = time,
+                        last
+                    )
+                } else {
+                    MessageItem(
+                        match = match,
+                        message = message,
+                        isCurrentUser = isCurrentUser,
+                        timeStamp = time,
+                        last,
+                        isRead
+                    )
                 }
             }
         }
     }
 }
+
 @Composable
 fun KeyBoard(
     modifier: Modifier,
-    message:String,
+    message: String,
     messageChange: (String) -> Unit,
     sendMessage: () -> Unit,
     sendAttachment: () -> Unit
-){
-    Row(modifier = modifier
-        .background(AppTheme.colorScheme.onTertiary)
-        .fillMaxWidth()
-        //.weight(1f)
-        .padding(0.dp, 12.dp)){
-        Row (
+) {
+    Row(
+        modifier = modifier
+            .background(AppTheme.colorScheme.onTertiary)
+            .fillMaxWidth()
+            //.weight(1f)
+            .padding(0.dp, 12.dp)
+    ) {
+        Row(
             modifier = Modifier.fillMaxWidth(),
             //horizontalArrangement = Arrangement.SpaceEvenly
-        ){
-            IconButton(onClick = sendAttachment,
+        ) {
+            IconButton(
+                onClick = sendAttachment,
                 modifier = Modifier
                     .offset(y = 0.dp)
                     .weight(1.0F),
-                colors= IconButtonDefaults.iconButtonColors(
+                colors = IconButtonDefaults.iconButtonColors(
                     containerColor = Color.Transparent,
                     contentColor = AppTheme.colorScheme.secondary,
                 ),
             ) {
-                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.attachment), contentDescription = "Send")
+                Icon(
+                    imageVector = ImageVector.vectorResource(id = R.drawable.attachment),
+                    contentDescription = "Send"
+                )
             }
             OutlinedTextField(
                 modifier = Modifier
@@ -122,29 +149,34 @@ fun KeyBoard(
                 maxLines = 4,
 
                 )
-            IconButton(onClick = sendMessage,
+            IconButton(
+                onClick = sendMessage,
                 modifier = Modifier
                     .offset(y = 0.dp)
                     .weight(1.0F),
-                colors= IconButtonDefaults.iconButtonColors(
+                colors = IconButtonDefaults.iconButtonColors(
                     containerColor = Color.Transparent,
                     contentColor = AppTheme.colorScheme.secondary,
                 ),
             ) {
-                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.send), contentDescription = "Send")
+                Icon(
+                    imageVector = ImageVector.vectorResource(id = R.drawable.send),
+                    contentDescription = "Send"
+                )
             }
         }
     }
 }
+
 @Composable
 fun UserMessage(
-    myMessage:String,
+    myMessage: String,
     color: Color = AppTheme.colorScheme.surface,
-    time:String,
+    time: String,
     last: Boolean,
-    read:Boolean,
+    read: Boolean,
 
-    ){
+    ) {
     Column {
         Row(
             modifier = Modifier
@@ -160,7 +192,11 @@ fun UserMessage(
                 shape = RoundedCornerShape(10.dp)
             ) {
                 Box(modifier = Modifier.padding(15.dp)) {
-                    Text(text = myMessage, style = AppTheme.typography.body, color= AppTheme.colorScheme.onSurface)
+                    Text(
+                        text = myMessage,
+                        style = AppTheme.typography.body,
+                        color = AppTheme.colorScheme.onSurface
+                    )
                 }
             }
         }
@@ -191,14 +227,15 @@ fun UserMessage(
         Spacer(modifier = Modifier.height(6.dp))
     }
 }
+
 @Composable
 fun TheirMessage(
-    replyMessage:String,
-    userPhoto:String = "",
+    replyMessage: String,
+    userPhoto: String = "",
     photoClick: () -> Unit = {},
-    time:String,
-    last:Boolean,
-){
+    time: String,
+    last: Boolean,
+) {
     Column {
         val bubbleColor = Color.LightGray
         Row(
@@ -208,11 +245,17 @@ fun TheirMessage(
             horizontalArrangement = Arrangement.Start,
             verticalAlignment = Alignment.Bottom
         ) {
-            if(last){
-                if(userPhoto == "feedback"){
-                    Image(painterResource(id = R.drawable.feedback), contentDescription = "Feedback photo",
-                        modifier = Modifier.size(44.dp).clip(shape = CircleShape), contentScale = ContentScale.Crop)
-                }else{
+            if (last) {
+                if (userPhoto == "feedback") {
+                    Image(
+                        painterResource(id = R.drawable.feedback),
+                        contentDescription = "Feedback photo",
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(shape = CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
                     IconButton(onClick = photoClick) {
                         AsyncImage(
                             modifier = Modifier
@@ -230,8 +273,8 @@ fun TheirMessage(
                 color = bubbleColor,
                 shape = RoundedCornerShape(10.dp)
             ) {
-                Box(modifier = Modifier.padding(15.dp) ){
-                    Text(text= replyMessage, style = AppTheme.typography.body)
+                Box(modifier = Modifier.padding(15.dp)) {
+                    Text(text = replyMessage, style = AppTheme.typography.body)
                 }
             }
             GenericLabelText(text = time)
@@ -239,34 +282,74 @@ fun TheirMessage(
         Spacer(modifier = Modifier.height(6.dp))
     }
 }
+
 @Composable
-fun MessageItem(match: MatchedUserModel, message: MessageModel, isCurrentUser: Boolean, timeStamp: String, last: Boolean, isRead: Boolean) {
+fun MessageItem(
+    match: MatchedUserModel,
+    message: MessageModel,
+    isCurrentUser: Boolean,
+    timeStamp: String,
+    last: Boolean,
+    isRead: Boolean
+) {
+    val vmRoot = viewModel { RootViewModel(MyApp.x) }
+    val chatId = getChatId(MyApp.signedInUser.value!!.number, match.number)
+    val messageRead by vmRoot.isRead.collectAsState(false)
+    LaunchedEffect(vmRoot.isRead){
+        vmRoot.checkRead(chatId)
+    }
     if (!isCurrentUser) {
-        if(!last){
-            TheirMessage(replyMessage = message.message, time =  timeStamp, last = false, userPhoto = match.image1)
-        }else{
-            TheirMessage(replyMessage = message.message, time =  timeStamp, last = true, userPhoto = match.image1)
+        if (!last) {
+            TheirMessage(
+                replyMessage = message.message,
+                time = timeStamp,
+                last = false,
+                userPhoto = match.image1
+            )
+        } else {
+            TheirMessage(
+                replyMessage = message.message,
+                time = timeStamp,
+                last = true,
+                userPhoto = match.image1
+            )
         }
     }
     if (isCurrentUser) {
-        if(!last){
-            UserMessage(myMessage = message.message, time =  timeStamp, last = false, read = isRead)
-        }else{
-            UserMessage(myMessage = message.message, time =  timeStamp, last = true, read = isRead)
+        if (!last) {
+            UserMessage(myMessage = message.message, time = timeStamp, last = false, read = messageRead)
+        } else {
+            UserMessage(myMessage = message.message, time = timeStamp, last = true, read = messageRead)
         }
     }
 }
+
 @Composable
-fun MessageItemFeedBack(message: MessageModel, isCurrentUser: Boolean, timeStamp: String, last: Boolean) {
+fun MessageItemFeedBack(
+    message: MessageModel,
+    isCurrentUser: Boolean,
+    timeStamp: String,
+    last: Boolean
+) {
     if (!isCurrentUser) {
-        if(!last){
-            TheirMessage(replyMessage = message.message, time =  timeStamp, last = false, userPhoto = "feedback")
-        }else{
-            TheirMessage(replyMessage = message.message, time =  timeStamp, last = true, userPhoto = "feedback")
+        if (!last) {
+            TheirMessage(
+                replyMessage = message.message,
+                time = timeStamp,
+                last = false,
+                userPhoto = "feedback"
+            )
+        } else {
+            TheirMessage(
+                replyMessage = message.message,
+                time = timeStamp,
+                last = true,
+                userPhoto = "feedback"
+            )
         }
     }
 
     if (isCurrentUser) {
-        UserMessage(myMessage = message.message, time =  timeStamp, last = false, read = false)
+        UserMessage(myMessage = message.message, time = timeStamp, last = false, read = false)
     }
 }

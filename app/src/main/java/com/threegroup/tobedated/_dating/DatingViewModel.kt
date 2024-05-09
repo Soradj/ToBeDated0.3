@@ -107,7 +107,7 @@ class DatingViewModel(private var repository: Repository) : ViewModel() {
                     val updatedMatch = repository.getMatch(match, userId)
                     observeLastMessage(match, updatedMatch)
                 }
-                _matchList.value = convertedMatches.filterIsInstance<Match>() // Filter out Unit
+                _matchList.value = convertedMatches
             }
         }
     }
@@ -196,11 +196,11 @@ class DatingViewModel(private var repository: Repository) : ViewModel() {
 
 
 
-    fun checkRead(chatId: String, callBack:(Boolean)->Unit) {
-        viewModelScope.launch(Dispatchers.IO) {
-            repository.checkRead(chatId, "", callBack)
-        }
-    }
+//    fun checkRead(chatId: String, callBack:(Boolean)->Unit) {
+//        viewModelScope.launch(Dispatchers.IO) {
+//            repository.checkRead(chatId, "", callBack)
+//        }
+//    }
     /**
      *  generates a unique chatId made from the UIDs of the sender and receiver
      */

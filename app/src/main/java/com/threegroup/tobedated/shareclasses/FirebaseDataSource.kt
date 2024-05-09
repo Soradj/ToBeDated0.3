@@ -32,6 +32,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.single
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
@@ -46,6 +47,7 @@ import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
+
 class FirebaseDataSource {
 
     private fun getCurrentUserId(): String {
@@ -89,7 +91,7 @@ class FirebaseDataSource {
                                     }
                                 }
                             } catch (e: Exception) {
-                                Log.d("Searching","Error parsing UserModel: $e")
+                                Log.d("Searching", "Error parsing UserModel: $e")
                             }
                         }
                         val sortedList = list.sortedByDescending { it.status }
@@ -97,14 +99,14 @@ class FirebaseDataSource {
                     }
 
                     override fun onCancelled(error: DatabaseError) {
-                        Log.d("Searching","Database error: ${error.message}")
+                        Log.d("Searching", "Database error: ${error.message}")
                     }
                 }
                 query.addValueEventListener(usersListener)
             }
 
             override fun onCancelled(error: DatabaseError) {
-                Log.d("Searching","Database error: ${error.message}")
+                Log.d("Searching", "Database error: ${error.message}")
             }
         }
 
@@ -124,7 +126,11 @@ class FirebaseDataSource {
         }
     }.flowOn(Dispatchers.IO)
 
-    private fun passBlocked(dbReference: DatabaseReference, userId: String, potentialUser: String): Boolean {
+    private fun passBlocked(
+        dbReference: DatabaseReference,
+        userId: String,
+        potentialUser: String
+    ): Boolean {
         //val block = dbReference.child(userId).child("blocked").child(potentialUser)
 
         //val exists = true
@@ -205,7 +211,11 @@ class FirebaseDataSource {
     /**
     Likes and match related functions
      */
-    private suspend fun hasUserLikedBack(userId: String, likedUserId: String, inOther:String= ""): Boolean { //= ""
+    private suspend fun hasUserLikedBack(
+        userId: String,
+        likedUserId: String,
+        inOther: String = ""
+    ): Boolean { //= ""
         val likeOrPassRef = FirebaseDatabase.getInstance().getReference("likeorpass$inOther")
         val likedNodeRef = likeOrPassRef.child(likedUserId).child("liked")
 
@@ -214,7 +224,12 @@ class FirebaseDataSource {
     }
 
     // TODO (new function that creates a new path in database called "likeorpass" and stores like, pass, likedby, and passed by information)
-    suspend fun likeOrPass(userId: String, likedUserId: String, isLike: Boolean, inOther:String): RealtimeDBMatch? {
+    suspend fun likeOrPass(
+        userId: String,
+        likedUserId: String,
+        isLike: Boolean,
+        inOther: String
+    ): RealtimeDBMatch? {
         val database = FirebaseDatabase.getInstance()
 
         // Ensure "likeorpass" node exists
@@ -287,40 +302,41 @@ class FirebaseDataSource {
         matchRef.child(userId).child("isNewMatch").setValue(false)
     }
 
-    suspend fun getMatchesFlow(userId: String, inOther: String): Flow<List<RealtimeDBMatch>> = callbackFlow {
-        val ref = FirebaseDatabase.getInstance().getReference("matches$inOther")
-        val listener = object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                val matches = mutableListOf<RealtimeDBMatch>()
-                for (data in snapshot.children) {
-                    try {
-                        val match = data.getValue(RealtimeDBMatch::class.java)
-                        match?.let {
-                            // Check if userId appears at the start or end of usersMatched field
-                            if (it.usersMatched.contains(userId)) {
-                                matches.add(it)
+    suspend fun getMatchesFlow(userId: String, inOther: String): Flow<List<RealtimeDBMatch>> =
+        callbackFlow {
+            val ref = FirebaseDatabase.getInstance().getReference("matches$inOther")
+            val listener = object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val matches = mutableListOf<RealtimeDBMatch>()
+                    for (data in snapshot.children) {
+                        try {
+                            val match = data.getValue(RealtimeDBMatch::class.java)
+                            match?.let {
+                                // Check if userId appears at the start or end of usersMatched field
+                                if (it.usersMatched.contains(userId)) {
+                                    matches.add(it)
+                                }
                             }
+                            Log.d("MATCH_TAG", "Succeeded parsing RealtimeDBMatch")
+                        } catch (e: Exception) {
+                            Log.d("MATCH_TAG", "Error parsing RealtimeDBMatch", e)
                         }
-                        Log.d("MATCH_TAG", "Succeeded parsing RealtimeDBMatch")
-                    } catch (e: Exception) {
-                        Log.d("MATCH_TAG", "Error parsing RealtimeDBMatch", e)
                     }
+                    trySend(matches).isSuccess // Emit the list of matches to the flow
                 }
-                trySend(matches).isSuccess // Emit the list of matches to the flow
+
+                override fun onCancelled(error: DatabaseError) {
+                    Log.d("MATCH_TAG", "Database error: ${error.message}")
+                }
             }
 
-            override fun onCancelled(error: DatabaseError) {
-                Log.d("MATCH_TAG", "Database error: ${error.message}")
+            val query = ref.orderByChild(RealtimeDBMatchProperties.usersMatched)
+            query.addListenerForSingleValueEvent(listener)
+
+            awaitClose {
+                query.removeEventListener(listener)
             }
         }
-
-        val query = ref.orderByChild(RealtimeDBMatchProperties.usersMatched)
-        query.addListenerForSingleValueEvent(listener)
-
-        awaitClose {
-            query.removeEventListener(listener)
-        }
-    }
 
     /**
      * Functions related to blocking and reporting and suggesting
@@ -434,7 +450,7 @@ class FirebaseDataSource {
                         match.usersMatched[0],
                         match.usersMatched[1]
                     ), inOther
-                )
+                ).single()
             )
         }
         //println(retrievedMatch)
@@ -474,21 +490,16 @@ class FirebaseDataSource {
      * takes the chat id
      * message related stuff
      */
-    private suspend fun getLastMessage(chatId: String, inOther: String): String {
-        return suspendCoroutine { continuation ->
-            val chatsRef = FirebaseDatabase.getInstance().getReference("chats$inOther").child(chatId)
-            chatsRef.orderByKey().limitToLast(1).get().addOnSuccessListener { dataSnapshot ->
-                val lastChild = dataSnapshot.children.firstOrNull()
-                val lastMessage = lastChild?.child("message")?.getValue(String::class.java) ?: ""
-                continuation.resume(lastMessage)
-            }.addOnFailureListener { exception ->
-                println("oops failure")
-                continuation.resumeWithException(exception)
-            }
-        }
+    fun getLastMessage(chatId: String, inOther: String): Flow<String> = flow {
+        val chatsRef = FirebaseDatabase.getInstance().getReference("chats$inOther").child(chatId)
+        val snapshot = chatsRef.get().await()
+        val messageNodes = snapshot.children.filter { it.key != "notifications" }
+        val lastChild = messageNodes.lastOrNull()
+        val lastMessage = lastChild?.child("message")?.getValue(String::class.java) ?: ""
+        emit(lastMessage)
     }
 
-    fun getChatData(chatId: String?, inOther:String): Flow<List<MessageModel>> = callbackFlow {
+    fun getChatData(chatId: String?, inOther: String): Flow<List<MessageModel>> = callbackFlow {
         val dbRef: DatabaseReference =
             FirebaseDatabase.getInstance().getReference("chats$inOther").child(chatId!!)
         val valueEventListener = object : ValueEventListener {
@@ -593,8 +604,9 @@ class FirebaseDataSource {
     private suspend fun decrementNotificationCount(chatId: String?, inOther: String) {
         // Decrement the count in the database
         val userId = getCurrentUserId()
-        val notificationRef = FirebaseDatabase.getInstance().getReference("chats$inOther").child(chatId!!)
-            .child("notifications").child(userId)
+        val notificationRef =
+            FirebaseDatabase.getInstance().getReference("chats$inOther").child(chatId!!)
+                .child("notifications").child(userId)
 
         try {
             val currentCountSnapshot = notificationRef.get().await()
@@ -613,7 +625,11 @@ class FirebaseDataSource {
         }
     }
 
-    private fun getUnreadMessagesCount(chatId: String?, userId: String, inOther: String): Flow<Int> = flow {
+    private fun getUnreadMessagesCount(
+        chatId: String?,
+        userId: String,
+        inOther: String
+    ): Flow<Int> = flow {
         val chatRef = FirebaseDatabase.getInstance().getReference("chats$inOther").child(chatId!!)
         var unreadMessagesCount = 0
 
@@ -641,16 +657,16 @@ class FirebaseDataSource {
         // Decrement the notification count
         decrementNotificationCount(chatId, inOther)
     }
-    fun checkRead(chatId: String, inOther: String, callback: (Boolean)->Unit) {
-            val chatsRef = FirebaseDatabase.getInstance().getReference("chats$inOther").child(chatId)
-            chatsRef.orderByKey().limitToLast(1).get().addOnSuccessListener { dataSnapshot ->
-                val lastChild = dataSnapshot.children.firstOrNull()
-                val isRead = lastChild?.child("read")?.getValue(Boolean::class.java) ?: false
-                callback(isRead)
-            }.addOnFailureListener { exception ->
-                Log.e("Read", exception.toString())
-        }
+
+    fun checkRead(chatId: String, inOther: String): Flow<Boolean> = flow {
+        val chatsRef = FirebaseDatabase.getInstance().getReference("chats$inOther").child(chatId)
+        val snapshot = chatsRef.get().await()
+        val readNodes = snapshot.children.filter { it.key != "notifications" }
+        val lastChild = readNodes.lastOrNull()
+        val isRead = lastChild?.child("read")?.getValue(Boolean::class.java) ?: false
+        emit(isRead)
     }
+
     private fun markChatAsRead(chatId: String, inOther: String) {
         val currentUser = getCurrentUserId()
         val chatRef = FirebaseDatabase.getInstance().getReference("chats$inOther").child(chatId)
@@ -684,7 +700,12 @@ class FirebaseDataSource {
     /**
      * Deletes the user profile and all things connected to that profile
      */
-    suspend fun deleteProfile(userId: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit, inOther: String) {
+    suspend fun deleteProfile(
+        userId: String,
+        onSuccess: () -> Unit,
+        onFailure: (Exception) -> Unit,
+        inOther: String
+    ) {
         try {
             val database = FirebaseDatabase.getInstance()
             //val storage = FirebaseStorage.getInstance()
@@ -697,9 +718,9 @@ class FirebaseDataSource {
 
             // Delete user's chats
             deleteChats(database, userId, inOther)
-            when(inOther){
+            when (inOther) {
                 "casual" -> userRef.child("hasCasual").setValue(false)
-                else ->{
+                else -> {
                     // Delete user's data from Firebase Storage
                     deleteUserDataFromStorage(userId)
 
@@ -712,7 +733,10 @@ class FirebaseDataSource {
                         .addOnFailureListener { e ->
                             onFailure(e)
                         }
-                    Log.d("DeleteUserAndData", "User $userId and associated data deleted successfully")
+                    Log.d(
+                        "DeleteUserAndData",
+                        "User $userId and associated data deleted successfully"
+                    )
                 }
             }
         } catch (e: Exception) {
@@ -725,32 +749,34 @@ class FirebaseDataSource {
      * Set info for the logged in user
      */
 
-    suspend fun setUserInfo(number: String, location: String, inLogin:Boolean): Flow<UserModel?> = flow {
-        val databaseReference = FirebaseDatabase.getInstance().getReference("users").child(number)
+    suspend fun setUserInfo(number: String, location: String, inLogin: Boolean): Flow<UserModel?> =
+        flow {
+            val databaseReference =
+                FirebaseDatabase.getInstance().getReference("users").child(number)
 
-        val userDataMap = withContext(Dispatchers.IO) {
-            suspendCoroutine { continuation ->
-                val eventListener = object : ValueEventListener {
-                    override fun onDataChange(snapshot: DataSnapshot) {
-                        continuation.resume(snapshot.value as? Map<*, *>)
-                    }
+            val userDataMap = withContext(Dispatchers.IO) {
+                suspendCoroutine { continuation ->
+                    val eventListener = object : ValueEventListener {
+                        override fun onDataChange(snapshot: DataSnapshot) {
+                            continuation.resume(snapshot.value as? Map<*, *>)
+                        }
 
-                    override fun onCancelled(error: DatabaseError) {
-                        continuation.resumeWithException(error.toException())
+                        override fun onCancelled(error: DatabaseError) {
+                            continuation.resumeWithException(error.toException())
+                        }
                     }
+                    databaseReference.addListenerForSingleValueEvent(eventListener)
                 }
-                databaseReference.addListenerForSingleValueEvent(eventListener)
             }
+            userDataMap?.let { map ->
+                val user = setUserProperties(UserModel(), map, location)
+                emit(user)
+            }
+            if (!inLogin) {
+                databaseReference.child("status").setValue(System.currentTimeMillis())
+            }
+            databaseReference.child("location").setValue(location)
         }
-        userDataMap?.let { map ->
-            val user = setUserProperties(UserModel(), map, location)
-            emit(user)
-        }
-        if(!inLogin){
-            databaseReference.child("status").setValue(System.currentTimeMillis())
-        }
-        databaseReference.child("location").setValue(location)
-    }
 
 
     /**
@@ -998,7 +1024,10 @@ class FirebaseDataSource {
                                     if (it.number != FirebaseAuth.getInstance().currentUser?.phoneNumber
                                         && passBlocked(dbRef, user.number, it.number)//KEEP
                                         && passSeeMe(it, likePassSnapshot)//KEEP
-                                        && isProfileInteractedByUserC(it.number, likePassSnapshot)//KEEP
+                                        && isProfileInteractedByUserC(
+                                            it.number,
+                                            likePassSnapshot
+                                        )//KEEP
                                         && passBasicPreferences(user, it)//Keep
                                         && !passMatchC(it)//KEEP
                                         && passPremiumPrefC(user, it)//KEEP
@@ -1042,16 +1071,19 @@ class FirebaseDataSource {
             likePassNodeRef.removeEventListener(likePassListener)
         }
     }.flowOn(Dispatchers.IO)
+
     private fun isProfileInteractedByUserC(potentialUser: String, snapshot: DataSnapshot): Boolean {
         val likedSnapshot = snapshot.child("liked").child(potentialUser)
         val passedSnapshot = snapshot.child("passed").child(potentialUser)
 
         return !(likedSnapshot.exists() || passedSnapshot.exists())
     }
+
     private fun passMatchC(potentialUser: MatchedUserModel): Boolean {
 
         return potentialUser.hasThreeCasual
     }
+
     private fun passPremiumPrefC(user: UserModel, potentialUser: MatchedUserModel): Boolean {
         val userPref: UserSearchPreferenceModel = user.userPref
         val preferences = listOf(
